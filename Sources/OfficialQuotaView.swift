@@ -18,6 +18,7 @@ enum OfficialQuotaView {
         }
         if let errorMessage { stack.addArrangedSubview(label("⚠ \(errorMessage)" + (snapshot == nil ? "" : L("\n当前百分比为上次成功查询结果。")), color: .systemOrange)) }
         if let snapshot {
+            if let source = snapshot.loginSource { stack.addArrangedSubview(label(L("登录来源：%@",L(source)),color:.secondaryLabelColor)) }
             let models = reading.models
             let showModelChoice = models.count > 1 || reading.selectedModel != nil
             func radio(_ title: String, id: String?) -> NSButton {

@@ -319,3 +319,14 @@ assert(singleRadios.allSatisfy { $0.identifier != nil } && Set(singleRadios.comp
 var removedSelection = ProviderReading(snapshot:modelSnapshot); removedSelection.modelID = "name:Removed Model"
 let fallbackDetails = OfficialQuotaView.build(provider:.zcode,reading:removedSelection,displayedPeriod:.daily,authorize:{})
 assert(descendants(fallbackDetails).compactMap { $0 as? NSButton }.filter { $0.state == .on }.map { $0.title } == [L("自动（默认）")],"temporarily removed model clearly checks actual Automatic choice")
+for language in [InterfaceLanguage.chinese,.english] {
+    useTestLanguage(language)
+    var snapshot=QuotaSnapshot(rateLimits:officialBucket,rateLimitsByLimitId:nil)
+    snapshot.loginSource="Claude Code 同账号备用"
+    let reading=ProviderReading(snapshot:snapshot)
+    let view=OfficialQuotaView.build(provider:.claude,reading:reading,displayedPeriod:.short,authorize:{})
+    let text=descendants(view).compactMap { ($0 as? NSTextField)?.stringValue }
+    assert(text.contains(L("登录来源：%@",L("Claude Code 同账号备用"))),"active Claude login source is translated")
+    assert(view.fittingSize.width<=220.1,"desktop source label stays inside compact details")
+}
+print("PASS compact bilingual Claude login source label")

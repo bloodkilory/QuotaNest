@@ -307,7 +307,13 @@ final class AppController: NSObject, NSApplicationDelegate {
         }
         switch provider {
         case .codex: client.fetch(completion)
-        case .claude: claudeClient.fetch(allowPrompt: allowPrompt, completion: completion)
+        case .claude: claudeClient.fetch(allowPrompt:allowPrompt,onAccountChange:{ [weak self] in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.readings[.claude]?.snapshot = nil; self.readings[.claude]?.lastSuccess = nil; self.readings[.claude]?.failure = nil
+                self.render(); self.writeDiagnostics()
+            }
+        },completion:completion)
         case .antigravity: antigravityClient.fetch(completion)
         case .kimi: kimiClient.fetch(completion)
         case .zcode: zcodeClient.fetch(completion: completion)
@@ -354,6 +360,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             if let remaining = entry.window(for: provider, period: period)?.remaining { value["remaining"] = remaining }
             if let model = entry.selectedModel { value["model"] = model.name }
             if let date = entry.lastSuccess { value["lastSuccess"] = ISO8601DateFormatter().string(from: date) }
+            if let source = entry.snapshot?.loginSource { value["loginSource"] = source }
             if let error = entry.error { value["error"] = error }
             providers[provider.rawValue] = value
         }

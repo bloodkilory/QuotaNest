@@ -4,7 +4,7 @@ enum QuotaProviderID: String, CaseIterable {
     var title: String {
         switch self {
         case .codex: return "Codex"
-        case .claude: return "Claude Code"
+        case .claude: return "Claude"
         case .antigravity: return "Antigravity"
         case .kimi: return "Kimi Code"
         case .zcode: return "智谱 ZCode"
@@ -17,7 +17,7 @@ enum QuotaProviderID: String, CaseIterable {
     var loginHelp: String {
         switch self {
         case .codex: return L("使用本机 Codex 官方登录。")
-        case .claude: return L("请在终端运行 claude auth login 完成官方订阅登录。")
+        case .claude: return L("优先使用 Claude 桌面端当前账号；Claude Code 仅作同账号备用。")
         case .antigravity: return L("使用本机 Antigravity CLI 登录，胶囊默认展示 Gemini。")
         case .kimi: return L("请先在 Kimi Code 官方客户端完成国内账号登录。")
         case .zcode: return L("请先在官方 ZCode 登录智谱个人账号并连接 Coding Plan 或 Start Plan。仅复用已有登录，不创建 API Key。")

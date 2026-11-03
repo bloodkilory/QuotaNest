@@ -35,11 +35,13 @@ func failed(_ result: Result<QuotaSnapshot,Error>) -> Bool {
 func success(_ result: Result<QuotaSnapshot,Error>) -> Bool {
     if case .success(let snapshot) = result { return snapshot.rateLimitsByLimitId?["claude"]?.primary?.remaining == 82 }; return false
 }
+let emptyHome = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+let noDesktop = ClaudeDesktopCredentials(home:emptyHome)
 let config = URLSessionConfiguration.ephemeral
 config.protocolClasses = [UsageResponse.self]
 var time = Date(timeIntervalSince1970:2_000_000_000)
 var credentialReads = 0
-let client = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in credentialReads += 1; return "test-oauth" })
+let client = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in credentialReads += 1; return "test-oauth" },desktopCredentials:noDesktop)
 UsageResponse.headers = ["Retry-After":"600"]
 check(failed(query(client)),"429 is reported")
 time.addTimeInterval(120)
@@ -54,7 +56,7 @@ for header in [nil,"0","-1","invalid","Wed, 21 Oct 2015 07:28:00 GMT"] as [Strin
     time = Date(timeIntervalSince1970:2_000_000_000)
     UsageResponse.requests = 0; UsageResponse.status = 429
     UsageResponse.headers = header.map { ["Retry-After":$0] } ?? [:]
-    let client = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in "test-oauth" })
+    let client = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in "test-oauth" },desktopCredentials:noDesktop)
     for (index,delay) in [120.0,240,480,900,900].enumerated() {
         check(failed(query(client)),"repeated rate limit reported")
         let count = index+1
@@ -77,7 +79,7 @@ time = Date(timeIntervalSince1970:2_000_000_000)
 let formatter = DateFormatter(); formatter.locale = Locale(identifier:"en_US_POSIX"); formatter.timeZone = TimeZone(secondsFromGMT:0); formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
 UsageResponse.status = 429; UsageResponse.requests = 0
 UsageResponse.headers = ["Retry-After":formatter.string(from:time.addingTimeInterval(600))]
-let dated = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in "test-oauth" })
+let dated = ClaudeQuotaClient(configuration:config,now:{ time },tokenProvider:{ _ in "test-oauth" },desktopCredentials:noDesktop)
 check(failed(query(dated)),"HTTP-date limit reported")
 time.addTimeInterval(599)
 check(failed(query(dated)) && UsageResponse.requests == 1,"HTTP-date respected")

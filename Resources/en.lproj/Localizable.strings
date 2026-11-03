@@ -335,3 +335,18 @@
 "在胶囊中显示：%@" = "Show in capsule: %@";
 
 "Claude 查询受限；将在 %@ 后重试" = "Claude usage is rate limited; retry after %@";
+"Claude 桌面端" = "Claude Desktop";
+"Claude Code 同账号备用" = "Claude Code backup";
+"登录来源：%@" = "Login: %@";
+"优先使用 Claude 桌面端当前账号；Claude Code 仅作同账号备用。" = "Use the current Claude Desktop account first; Claude Code is a same-account backup.";
+"Claude 桌面端登录记录无效；请在桌面端重新登录" = "Claude Desktop sign-in data is invalid; sign in again in the desktop app";
+"Claude 桌面端登录尚未授权读取；点击“授权 Claude 登录读取”后重试" = "Allow Claude Desktop sign-in access using Authorize Claude sign-in access, then retry";
+"Claude 桌面端登录加密格式暂不支持" = "This Claude Desktop sign-in encryption format is not supported yet";
+"无法解密 Claude 桌面端登录" = "Unable to decrypt Claude Desktop sign-in";
+"未找到 Claude 桌面端登录；请先在桌面端登录" = "No Claude Desktop sign-in found; sign in to the desktop app first";
+"Claude 桌面端未提供额度登录；请打开桌面端更新登录" = "No usage credential available from Claude Desktop; open the app to renew sign-in";
+"无法确定 Claude 桌面端当前组织；请在桌面端选择组织后刷新" = "Cannot identify the active Claude Desktop organization; select it in the desktop app, then refresh";
+"Claude 查询超时；稍后自动刷新" = "Claude query timed out; checking again automatically later";
+"Claude 桌面端账号已改变；请刷新" = "Claude Desktop account changed; refresh to load the current account";
+"Claude 登录与桌面端不是同一账号或组织；未切换额度来源" = "Claude login belongs to a different account or organization; backup was not used";
+"无法读取 Claude 桌面端组织选择；稍后刷新" = "Unable to read the active Claude Desktop organization; refresh later";

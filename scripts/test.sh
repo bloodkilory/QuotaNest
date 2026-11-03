@@ -8,8 +8,12 @@ cp -R Resources/*.lproj .build/localizations.bundle/
 .build/model-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift -swift-version 5 Sources/QuotaModels.swift Sources/CodexClient.swift Tests/Protocol/main.swift -o .build/protocol-tests
 .build/protocol-tests
-"${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/BoundedCommand.swift Sources/ProviderPayload.swift Sources/OfficialProviders.swift Tests/Claude/main.swift -o .build/claude-tests
+"${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/BoundedCommand.swift Sources/ProviderPayload.swift Sources/OfficialProviders.swift Sources/ClaudeDesktopCredentials.swift Tests/Claude/main.swift -o .build/claude-tests
 .build/claude-tests
+"${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/ClaudeDesktopCredentials.swift Tests/ClaudeDesktop/CredentialData.swift Tests/ClaudeDesktop/main.swift -o .build/desktop-credential-tests
+.build/desktop-credential-tests
+"${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/BoundedCommand.swift Sources/ProviderPayload.swift Sources/OfficialProviders.swift Sources/ClaudeDesktopCredentials.swift Tests/ClaudeDesktop/CredentialData.swift Tests/ClaudeDesktopClient/main.swift -o .build/desktop-source-tests
+.build/desktop-source-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/ProviderState.swift Sources/ProviderPayload.swift Tests/Providers/main.swift -o .build/provider-tests
 .build/provider-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift -swift-version 5 Sources/CCSwitchStore.swift Sources/DeepSeekBalance.swift Sources/DeepSeekBalanceClient.swift Sources/ConnectedAccountState.swift Tests/ConnectedAccounts/main.swift -o .build/connected-account-tests

@@ -1,19 +1,19 @@
 # Windows / macOS feature parity · 功能核对
 
-Compared against macOS and Windows v1.9.1. “Implemented” means code plus automated tests; Windows tests use synthetic credentials and do not certify real Windows accounts.
+Compared against macOS and Windows v1.9.2. “Implemented” means code plus automated tests; Windows tests use synthetic credentials and do not certify real Windows accounts.
 
-核对基准：macOS / Windows v1.9.1。已实现与真实账号验收分开；Windows 自动化使用模拟凭据。
+核对基准：macOS / Windows v1.9.2。已实现与真实账号验收分开；Windows 自动化使用模拟凭据。
 
-| Feature / 功能 | Mac | Windows v1.9.1 | Result / 差异 |
+| Feature / 功能 | Mac | Windows v1.9.2 | Result / 差异 |
 | --- | --- | --- | --- |
 | Codex official model quotas / 官方模型额度 | Yes | Yes, native codex.exe | All returned model buckets are selectable; Automatic keeps main quota / 全部返回模型可选，自动保留主额度口径 |
 | Claude official subscription / 官方套餐 | Yes | Added | Existing subscription OAuth; 5h, 7d, Sonnet, Opus; reset time / 本轮新增各额度组、重置时间 |
-| Claude credentials / 登录读取 | File or macOS Keychain | Native `.credentials.json`; absolute `CLAUDE_CONFIG_DIR` supported | Platform storage differs; no API key/helper/refresh-token execution / 存储方式随平台不同，不代替官方客户端更新登录 |
+| Claude credentials / 登录读取 | Desktop account first; verified same-account/organization CLI backup | Native `.credentials.json`; absolute `CLAUDE_CONFIG_DIR` supported | Platform storage differs; no API key/helper/refresh-token execution / 存储方式随平台不同，不代替官方客户端更新登录 |
 | CC Switch saved connections | Schema 18–20, read-only | Same | Claude Code/Codex connections; fixed official DeepSeek endpoint / 同一数据范围与固定余额端点 |
 | API vs subscription source | Single selector | Same, Claude added | No change to client routing / 不修改客户端实际路由 |
 | Decimal CNY/USD balance breakdown | Yes | Yes | No currency sum or fake percentage / 不混算币种，不生成余额百分比 |
 | Quota model, period and currency choice | Per-source saved | Per-source model radio + period/currency choice | Automatic uses lowest remaining; an explicit model supplies the number, ring and reset / 自动取最低剩余；指定模型后数字、环和重置时间使用同一额度 |
-| Startup/manual/60s data refresh | Yes | Yes | Mac additionally listens for system wake; Windows timer resumes after sleep / Mac 有显式唤醒事件，Windows 恢复后由轮询刷新 |
+| Startup/manual/120s data refresh | Yes | Yes | Mac additionally listens for system wake; Windows timer resumes after sleep / Mac 有显式唤醒事件，Windows 恢复后由轮询刷新 |
 | Temporary failure | Stale reading + ! | Same | Changed Claude/DeepSeek credentials discard previous values / 官方/API 凭据变化清除旧数据 |
 | Codex transient reconnect | One retry in 30s | One bounded attempt | Remaining transport difference / 仍有一次重连差异 |
 | Concurrent fetch | Per-provider coordinator | One global worker | Source switch queues new source after bounded previous request / Windows 旧请求完成后立即查询新来源 |
@@ -45,3 +45,7 @@ The following sources exist in Mac and are **not implemented on Windows**. They 
 CI builds/installs the actual x64 NSIS package, upgrades with saved preferences and sign-in registration, drives the installed WebView2, verifies Claude/Codex/API source separation, model radio selection, model/period/currency retention, native Sonnet/Opus tray readings, Chinese/English and uninstall. Claude HTTP tests assert official headers, retry/auth/redirect/429 behavior using synthetic OAuth only.
 
 真实 Windows 11 用户仍需验证：官方 Claude/Codex 登录和订阅权限、CC Switch 真实版本、Clash TUN/代理、睡眠恢复、100/125/150% 缩放、多显示器和登录启动。应用不自动替换官方客户端凭据，也不索要账号 Token。
+
+v1.9.2 差异：macOS 新增 Claude 桌面端优先、同账号及组织的 CLI 备用；Windows 仍使用 Claude Code 登录文件。
+
+v1.9.2: macOS adds Claude Desktop priority with same-account/organization CLI backup. Windows still uses Claude Code credentials.

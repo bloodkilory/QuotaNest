@@ -33,6 +33,8 @@ struct QuotaBucket: Decodable {
     var remaining: Double? { windows.compactMap { $0.remaining }.min() }
 }
 struct QuotaSnapshot: Decodable {
+    enum CodingKeys: String, CodingKey { case rateLimits, rateLimitsByLimitId }
+    var loginSource: String? = nil
     let rateLimits: QuotaBucket?
     let rateLimitsByLimitId: [String: QuotaBucket]?
     var namedBuckets: [(String, QuotaBucket)] {

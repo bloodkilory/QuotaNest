@@ -6,12 +6,12 @@ Windows 客户端与现有 Mac 版独立，面向 **Windows 11 x64**。本轮不
 
 ## Install / 安装
 
-Download `QuotaNest-1.9.1-windows-x64-setup.exe` and `SHA256SUMS.txt` from the [v1.9.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1). Check the installer against its matching line in the checksum file, which also lists the Mac DMG, then run the installer. Installation is per user and does not require writing to Program Files.
+Download `QuotaNest-1.9.2-windows-x64-setup.exe` and `SHA256SUMS.txt` from the [v1.9.2 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2). Check the installer against its matching line in the checksum file, which also lists the Mac DMG, then run the installer. Installation is per user and does not require writing to Program Files.
 
 从上述正式 Release 下载 Windows EXE 和 `SHA256SUMS.txt`，按文件名找到对应摘要，核对 SHA-256 后运行安装程序。校验清单同时包含 Mac DMG。按当前用户安装。安装包没有 Windows 代码签名证书，系统可能显示 SmartScreen 提示；不自动关闭或绕过它。
 
 ```powershell
-Get-FileHash .\QuotaNest-1.9.1-windows-x64-setup.exe -Algorithm SHA256
+Get-FileHash .\QuotaNest-1.9.2-windows-x64-setup.exe -Algorithm SHA256
 ```
 
 ## Use / 使用

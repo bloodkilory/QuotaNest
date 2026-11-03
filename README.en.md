@@ -6,7 +6,7 @@ AI quota readings for the macOS menu bar and Windows tray, refreshed every 2 min
 
 原生 macOS 菜单栏套餐余量与 DeepSeek API 余额，支持中文 / English，统一选择显示来源。
 
-**Updated in v1.9.1:** normal refresh runs every 2 minutes on both platforms. On Mac, Claude usage queries respect server rate-limit delays and use increasing waits when no valid delay is provided. Manual refresh also respects that wait. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1) · [中文文档](README.md)
+**Updated in v1.9.2:** Mac follows the current Claude Desktop account first, with Claude Code as a verified same-account/organization backup. Switching accounts or organizations clears old readings; details show the active login source. Windows still uses Claude Code sign-in. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2) · [中文文档](README.md)
 
 ## Experimental domestic-provider adapters
 
@@ -28,10 +28,10 @@ See evidence and limitations: [Kimi](docs/providers/kimi.md), [ZCode/MiniMax](do
 
 | Platform | Download | Display |
 | --- | --- | --- |
-| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.9.1-universal.dmg` | Native menu bar capsule |
-| Windows 11 x64 | `QuotaNest-1.9.1-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
+| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.9.2-universal.dmg` | Native menu bar capsule |
+| Windows 11 x64 | `QuotaNest-1.9.2-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
 
-Both installers and the combined `SHA256SUMS.txt` are in the [v1.9.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
+Both installers and the combined `SHA256SUMS.txt` are in the [v1.9.2 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
 
 Requires macOS 13+. Download the universal DMG from this repository’s **[Releases](https://github.com/bloodkilory/QuotaNest/releases/latest)**, drag the app into **Applications**, eject the image, then open the installed app. Intel and Apple Silicon binaries are included. Provider CLIs are separate prerequisites.
 
@@ -44,7 +44,7 @@ Quit CodexQuota, install and open QuotaNest, then move the old app to Trash. Pro
 ## Connect
 
 - **Codex:** install the [official CLI](https://github.com/openai/codex), then run `codex login` with your subscription account.
-- **Claude Code:** install the [official CLI](https://code.claude.com/docs/en/setup), then run `claude auth login`. The app reads the default subscription OAuth credential file or the `Claude Code-credentials` Keychain item. Use the in-app authorization button if Keychain access is needed. API keys and proxy tokens are not subscription OAuth credentials.
+- **Claude on Mac:** follow the current Claude Desktop account first. A missing desktop account retains the existing [Claude Code](https://code.claude.com/docs/en/setup) `claude auth login` path. An expired or rejected desktop credential can use the CLI login only after the official profile matches the same account and organization. Rate limits share one cooldown. Windows still uses Claude Code credentials; see [desktop sign-in details](docs/providers/claude-desktop.md).
 - **Antigravity:** install and sign in to the [official CLI](https://antigravity.google/docs/cli), version 1.1.11+. Usage is read with `agy -p /usage --output-format json`.
 
 Codex and Antigravity are discovered in `~/.local/bin`, `/opt/homebrew/bin`, and `/usr/local/bin`. Providers work independently. Custom official-login profiles and third-party relay balances are not supported. Existing DeepSeek official API connections can be selected from CC Switch in Settings.
@@ -69,7 +69,7 @@ The glass-style interface supports light/dark appearances and reduced transparen
 
 When multiple models or quota groups are available, choose the radio button beside a group to display it in the capsule. The period button then cycles only that group’s periods. Choices persist per provider across refreshes and restarts. **Automatic (default)** restores the original provider rule; a missing selection temporarily falls back to Automatic, while an unknown selected quota stays `—` without borrowing another model’s percentage.
 
-Select a provider in the popover: **Codex**, **Claude Code**, or **Antigravity**. In Automatic mode, the capsule reports the lowest remaining value among the selected period’s applicable windows (Codex uses its main bucket; Antigravity uses Gemini groups only). If Gemini quota is unavailable, Antigravity shows `—` rather than substituting another model. All model groups remain available in the popover. It is not an average across models. Reset times use your system time zone.
+Select a provider in the popover: **Codex**, **Claude**, or **Antigravity**. In Automatic mode, the capsule reports the lowest remaining value among the selected period’s applicable windows (Codex uses its main bucket; Antigravity uses Gemini groups only). If Gemini quota is unavailable, Antigravity shows `—` rather than substituting another model. All model groups remain available in the popover. It is not an average across models. Reset times use your system time zone.
 
 Provider accents are teal for Codex, terracotta for Claude and blue for Antigravity. `!` means refresh failed and the value is stale; `—` means no valid data yet. The app also refreshes on launch and wake. Choose **Launch at login** in Settings, the refresh icon to the left of Settings in details, or **Quit QuotaNest** in Settings. After moving the installed app, toggle launch at login off and on to update its path.
 

@@ -16,7 +16,7 @@ QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每 2 分�
 
 AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per-provider model selection.
 
-**v1.9.1 更新**：两端常规查询改为每 2 分钟；Mac 的 Claude 查询遇到限流后按服务端要求等待，无有效等待时间时逐步延长重试间隔，手动刷新也不会绕过等待。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1) · [English documentation](README.en.md)
+**v1.9.2 更新**：Mac 优先跟随 Claude 桌面端当前账号；桌面登录失效时，仅使用同账号、同组织的 Claude Code 登录作为备用。切换账号/组织会清除旧额度，详情显示当前登录来源。Windows 仍使用 Claude Code 登录。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2) · [English documentation](README.en.md)
 
 - **一眼知道还能用多少**：套餐显示剩余百分比与彩色填充，API 钱包显示原币种金额。
 - **统一来源选择**：在顶部“菜单栏显示”中选择官方套餐或已连接的 API 余额，胶囊与详情同步，记住上次选择。
@@ -29,10 +29,10 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 
 | 系统 | 下载 | 使用入口 |
 | --- | --- | --- |
-| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.9.1-universal.dmg` | 菜单栏胶囊 |
-| Windows 11 x64 | `QuotaNest-1.9.1-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
+| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.9.2-universal.dmg` | 菜单栏胶囊 |
+| Windows 11 x64 | `QuotaNest-1.9.2-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
 
-两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.9.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
+两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.9.2 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
 
 **系统要求：macOS 13 或更新版本。** DMG 内含 Intel / Apple Silicon 通用应用；对应平台支持的官方客户端需要另外安装并登录。
 
@@ -47,7 +47,7 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 下载后可对照 Release 中的 `SHA256SUMS.txt` 检查文件完整性：
 
 ```sh
-shasum -a 256 ~/Downloads/QuotaNest-1.9.1-universal.dmg
+shasum -a 256 ~/Downloads/QuotaNest-1.9.2-universal.dmg
 ```
 
 ## 从 CodexQuota 升级
@@ -59,7 +59,7 @@ shasum -a 256 ~/Downloads/QuotaNest-1.9.1-universal.dmg
 | 平台 | 准备工作 | 查询方式 |
 | --- | --- | --- |
 | Codex | 安装 [官方 Codex CLI](https://github.com/openai/codex)，运行 `codex login` 使用套餐账号登录 | 本机 app-server 的 `account/rateLimits/read` |
-| Claude Code | 安装 [官方 Claude Code](https://code.claude.com/docs/en/setup)，运行 `claude auth login` 登录订阅账号 | 读取默认订阅 OAuth 凭证，查询官方额度端点 |
+| Claude | 优先使用本机 Claude 桌面端当前账号；没有桌面账号的机器继续使用 [Claude Code](https://code.claude.com/docs/en/setup) 的 `claude auth login` | 桌面凭据失效时，仅使用身份核对相同的 Claude Code 登录作为备用 |
 | Antigravity | 安装 [官方 CLI](https://antigravity.google/docs/cli)，版本 ≥ 1.1.11，并完成其官方登录流程 | `agy -p /usage --output-format json` |
 
 ### 国内平台 · 实验性接入
@@ -84,7 +84,7 @@ shasum -a 256 ~/Downloads/QuotaNest-1.9.1-universal.dmg
 
 **Claude 钥匙串**：后台刷新不会主动弹出授权框。需要时在 Claude 面板点击“授权 Claude 登录读取”，由 macOS 请求权限。凭证过期后，请在官方客户端重新登录。本应用不会替 Claude 刷新或改写凭证。CLI 显示已登录不一定代表存在可读取订阅额度的 OAuth 权限；API Key、代理 Token 与订阅 OAuth 不等价。
 
-**默认探测位置**：Codex 为 `~/.local/bin/codex`、`/opt/homebrew/bin/codex`、`/usr/local/bin/codex`；Antigravity 对应同目录的 `agy`。Claude 使用 `~/.claude/.credentials.json` 或默认钥匙串服务 `Claude Code-credentials`。目前不自动遍历多账号、自定义配置目录或其他密码库。
+**默认探测位置**：Codex 为 `~/.local/bin/codex`、`/opt/homebrew/bin/codex`、`/usr/local/bin/codex`；Antigravity 对应同目录的 `agy`。Mac 版 Claude 优先读取桌面端登录缓存，CLI 备用仍使用 `~/.claude/.credentials.json` 或钥匙串服务 `Claude Code-credentials`。桌面端与 CLI 必须匹配同一账号及组织；不匹配时不会切换，遇到 429 共用等待。Windows 仍使用 CLI 登录；桌面读取范围见 [桌面登录说明](docs/providers/claude-desktop.md)。目前不自动遍历多账号、自定义配置目录或其他密码库。
 
 **Clash TUN 连接不稳定**：Codex 查询优先沿用已有的 `HTTPS_PROXY` / `https_proxy`。只有 TUN、没有代理环境变量时，可将应用偏好 `codexHTTPSProxy` 设为 Clash 当前 HTTP 端口（例如 `http://127.0.0.1:7897`）；它只传给 Codex 官方子进程，不改系统代理、Clash 规则或登录数据。Clash 端口变更后需同步该偏好，清除偏好即恢复原路由。
 
