@@ -1,10 +1,10 @@
 # Windows / macOS feature parity · 功能核对
 
-Compared against macOS and Windows v1.9.0. “Implemented” means code plus automated tests; Windows tests use synthetic credentials and do not certify real Windows accounts.
+Compared against macOS and Windows v1.9.1. “Implemented” means code plus automated tests; Windows tests use synthetic credentials and do not certify real Windows accounts.
 
-核对基准：macOS / Windows v1.9.0。已实现与真实账号验收分开；Windows 自动化使用模拟凭据。
+核对基准：macOS / Windows v1.9.1。已实现与真实账号验收分开；Windows 自动化使用模拟凭据。
 
-| Feature / 功能 | Mac | Windows v1.9.0 | Result / 差异 |
+| Feature / 功能 | Mac | Windows v1.9.1 | Result / 差异 |
 | --- | --- | --- | --- |
 | Codex official model quotas / 官方模型额度 | Yes | Yes, native codex.exe | All returned model buckets are selectable; Automatic keeps main quota / 全部返回模型可选，自动保留主额度口径 |
 | Claude official subscription / 官方套餐 | Yes | Added | Existing subscription OAuth; 5h, 7d, Sonnet, Opus; reset time / 本轮新增各额度组、重置时间 |

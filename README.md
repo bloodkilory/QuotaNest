@@ -12,11 +12,11 @@
 
 ---
 
-QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每分钟刷新。Mac 保留原生 64 点胶囊与八个官方平台；Windows 支持 Codex、Claude 官方套餐与 CC Switch 已有 DeepSeek API 余额。两端均支持中文 / English 和按平台保存模型选择。
+QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每 2 分钟刷新。Mac 保留原生 64 点胶囊与八个官方平台；Windows 支持 Codex、Claude 官方套餐与 CC Switch 已有 DeepSeek API 余额。两端均支持中文 / English 和按平台保存模型选择。
 
 AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per-provider model selection.
 
-**v1.9.0 新增**：Windows x64 安装包、品牌色数字圆环托盘图标、悬停额度卡片，以及两端多模型额度单选。Mac 弹窗更紧凑，刷新与设置为标题栏图标，并修复 ZCode 免费 Start Plan 额度读取。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.0) · [English documentation](README.en.md)
+**v1.9.1 更新**：两端常规查询改为每 2 分钟；Mac 的 Claude 查询遇到限流后按服务端要求等待，无有效等待时间时逐步延长重试间隔，手动刷新也不会绕过等待。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1) · [English documentation](README.en.md)
 
 - **一眼知道还能用多少**：套餐显示剩余百分比与彩色填充，API 钱包显示原币种金额。
 - **统一来源选择**：在顶部“菜单栏显示”中选择官方套餐或已连接的 API 余额，胶囊与详情同步，记住上次选择。
@@ -29,10 +29,10 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 
 | 系统 | 下载 | 使用入口 |
 | --- | --- | --- |
-| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.9.0-universal.dmg` | 菜单栏胶囊 |
-| Windows 11 x64 | `QuotaNest-1.9.0-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
+| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.9.1-universal.dmg` | 菜单栏胶囊 |
+| Windows 11 x64 | `QuotaNest-1.9.1-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
 
-两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.9.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.0)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
+两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.9.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
 
 **系统要求：macOS 13 或更新版本。** DMG 内含 Intel / Apple Silicon 通用应用；对应平台支持的官方客户端需要另外安装并登录。
 
@@ -47,7 +47,7 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 下载后可对照 Release 中的 `SHA256SUMS.txt` 检查文件完整性：
 
 ```sh
-shasum -a 256 ~/Downloads/QuotaNest-1.9.0-universal.dmg
+shasum -a 256 ~/Downloads/QuotaNest-1.9.1-universal.dmg
 ```
 
 ## 从 CodexQuota 升级
@@ -120,7 +120,7 @@ OpenAI 标志、Claude Code 像素机器人和 Antigravity 标志替代字母缩
 
 胶囊宽度为 64 点。点击右侧竖线后的周期按钮可立即切换最近查询到的小时 / 日 / 周 / 订阅额度，各平台分别记住选择；首次优先小时周期，只有一种有效周期时按钮不可切换。左侧彩色填充表示当前周期剩余比例，未填充部分为透明材质。钱包金额没有百分比填充；官方同时返回多个余额币种时，右侧按钮可切换币种。
 
-点击胶囊左侧后，可切换平台、查看分组额度、重置时间、刷新状态，或点击设置左侧的刷新图标。时间按系统当前时区显示。应用启动、电脑唤醒时也会刷新；常规刷新间隔为 60 秒，系统调度和网络可能造成延迟。Codex 遇到临时服务错误或连接中断时，在同一轮内重连重试一次，总查询预算 30 秒；登录失效、权限不足或限流不立即重试。查询最终失败时仍将上次数据标为过期，保留 `!` 提示。
+点击胶囊左侧后，可切换平台、查看分组额度、重置时间、刷新状态，或点击设置左侧的刷新图标。时间按系统当前时区显示。应用启动、电脑唤醒时也会刷新；常规刷新间隔为 120 秒，系统调度和网络可能造成延迟。Codex 遇到临时服务错误或连接中断时，在同一轮内重连重试一次，总查询预算 30 秒；登录失效、权限不足或限流不立即重试。macOS 版的 Claude 遇到限流时遵守服务端的 `Retry-After`，没有有效等待时间时依次等待 2、4、8、15 分钟，最多 15 分钟；等待期间手动刷新也不会继续请求。查询最终失败时仍将上次数据标为过期，保留 `!` 提示。
 
 ### 应用更新
 

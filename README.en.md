@@ -2,11 +2,11 @@
 <h1 align="center">QuotaNest · 余度</h1>
 <p align="center">AI quotas in your Mac menu bar and Windows tray.<br><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
 
-AI quota readings for the macOS menu bar and Windows tray, refreshed every minute. The native Mac app keeps its 64-point capsule and eight official providers. Windows supports Codex and Claude subscriptions plus existing CC Switch DeepSeek API balances. Both apps support Chinese / English and saved model selections per provider.
+AI quota readings for the macOS menu bar and Windows tray, refreshed every 2 minutes. The native Mac app keeps its 64-point capsule and eight official providers. Windows supports Codex and Claude subscriptions plus existing CC Switch DeepSeek API balances. Both apps support Chinese / English and saved model selections per provider.
 
 原生 macOS 菜单栏套餐余量与 DeepSeek API 余额，支持中文 / English，统一选择显示来源。
 
-**New in v1.9.0:** a Windows x64 installer, dynamic number-and-ring tray icons, hover quota cards, and model quota radio buttons on both platforms. Mac gets compact details, header refresh/settings icons, and free ZCode Start Plan balances. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.0) · [中文文档](README.md)
+**Updated in v1.9.1:** normal refresh runs every 2 minutes on both platforms. On Mac, Claude usage queries respect server rate-limit delays and use increasing waits when no valid delay is provided. Manual refresh also respects that wait. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1) · [中文文档](README.md)
 
 ## Experimental domestic-provider adapters
 
@@ -28,10 +28,10 @@ See evidence and limitations: [Kimi](docs/providers/kimi.md), [ZCode/MiniMax](do
 
 | Platform | Download | Display |
 | --- | --- | --- |
-| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.9.0-universal.dmg` | Native menu bar capsule |
-| Windows 11 x64 | `QuotaNest-1.9.0-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
+| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.9.1-universal.dmg` | Native menu bar capsule |
+| Windows 11 x64 | `QuotaNest-1.9.1-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
 
-Both installers and the combined `SHA256SUMS.txt` are in the [v1.9.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.0). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
+Both installers and the combined `SHA256SUMS.txt` are in the [v1.9.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.1). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
 
 Requires macOS 13+. Download the universal DMG from this repository’s **[Releases](https://github.com/bloodkilory/QuotaNest/releases/latest)**, drag the app into **Applications**, eject the image, then open the installed app. Intel and Apple Silicon binaries are included. Provider CLIs are separate prerequisites.
 
@@ -104,7 +104,7 @@ Issues and pull requests are welcome. Include OS/app/CLI versions and redacted r
 
 [MIT License](LICENSE). Original app icon generated with AI assistance; third-party trademarks belong to their owners.
 
-The compact capsule uses provider marks instead of letter abbreviations. Its colored width tracks the remaining percentage over a translucent base. Wallet amounts have no percentage fill. A failed refresh preserves the last known reading with `!`. Updates follow real quota readings every 60 seconds. Codex transient service/connection failures get one reconnect and retry within a shared 30-second budget; authentication, permission and rate-limit errors do not retry immediately. Exhausted retries still show stale data explicitly.
+The compact capsule uses provider marks instead of letter abbreviations. Its colored width tracks the remaining percentage over a translucent base. Wallet amounts have no percentage fill. A failed refresh preserves the last known reading with `!`. Updates follow real quota readings every 120 seconds. Codex transient service/connection failures get one reconnect and retry within a shared 30-second budget; authentication, permission and rate-limit errors do not retry immediately. On macOS, Claude respects `Retry-After` on rate limits; without a valid delay it waits 2, 4, 8, then 15 minutes, capped at 15 minutes. Manual refresh also respects that wait. Exhausted retries still show stale data explicitly.
 
 The 64-point capsule has a narrow period button after a vertical separator. Click `5h` / `1d` / `1w` / `Q` (`额` in Chinese) to switch available cached hourly, daily, weekly or billing quotas instantly. Each provider remembers its selection; hours are preferred initially. With only one valid period the switch is disabled. Click the left portion for details. The progress fill applies only to the left portion; the period button keeps its translucent base.
 

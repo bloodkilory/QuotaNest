@@ -69,7 +69,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     private var errorMessage: String? { reading.error }
     private var refreshing: Bool { reading.refreshing }
     private var lockHandle: FileHandle?
-    private let interval: TimeInterval = 60
+    private let interval: TimeInterval = 120
     private var stateDirectory: URL { FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/CodexQuota") }
     func applicationDidFinishLaunching(_ notification: Notification) {
         // flock survives PID reuse and releases automatically on exit.

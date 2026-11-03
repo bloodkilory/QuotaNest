@@ -633,7 +633,7 @@ pub fn run() {
             start_poll(&backend,&handle);
             let check_backend=backend.clone();
             if !demo {tauri::async_runtime::spawn(async move{let result=updates::check().await;let mut s=check_backend.service.lock().unwrap();match result{Ok(u)=>{s.state.update_status=if u.is_some(){"availableUpdate"}else{"current"}.into();s.state.update=u;},Err(_)=>s.state.update_status="update_failed".into()}});}
-            tauri::async_runtime::spawn(async move{loop{tokio::select!{_=backend.work.notified()=>{},_=tokio::time::sleep(Duration::from_secs(60))=>{}};poll(backend.clone(),handle.clone()).await;}});
+            tauri::async_runtime::spawn(async move{loop{tokio::select!{_=backend.work.notified()=>{},_=tokio::time::sleep(Duration::from_secs(120))=>{}};poll(backend.clone(),handle.clone()).await;}});
             Ok(())
         }).run(tauri::generate_context!()).expect("QuotaNest could not start");
 }

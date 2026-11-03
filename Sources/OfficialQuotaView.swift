@@ -60,7 +60,7 @@ enum OfficialQuotaView {
         } else { stack.addArrangedSubview(label(refreshing ? L("正在读取官方套餐…") : L("尚未取得额度"), color: .secondaryLabelColor)) }
         let time = lastSuccess.map { dateString($0) } ?? L("尚未成功")
         stack.addArrangedSubview(label(L("更新：") + time,color:.secondaryLabelColor))
-        stack.toolTip! += "\n" + L("更新：%@\n每 1 分钟刷新 · %@",time,TimeZone.current.identifier)
+        stack.toolTip! += "\n" + L("更新：%@\n每 2 分钟刷新 · %@",time,TimeZone.current.identifier)
         if selectedProvider == .claude && errorMessage != nil {
             let authorize = AccountActionButton(L("授权 Claude 登录读取"),handler:authorize)
             authorize.controlSize = .small; authorize.font = .systemFont(ofSize:11)

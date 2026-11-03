@@ -122,7 +122,7 @@ function render(){
   if(snapshot.reading.error)card.append(element('p',label(snapshot.reading.error.code),'error'));
   const updated=snapshot.reading.updated?`${label('updated')}: ${new Date(snapshot.reading.updated*1000).toLocaleTimeString(document.documentElement.lang)}`:label('never');
   card.append(element('p',updated,'muted'));const refresh=button(snapshot.reading.refreshing?'refreshing':'refresh',async()=>{if(native){await command('refresh');snapshot=await command<Snapshot>('snapshot');}} ,'primary');refresh.id='refresh';refresh.disabled=snapshot.reading.refreshing;card.append(refresh);shell.append(card);
-  const footer=element('footer');const set=button('settings',()=>{settings=true;preferencesEditing=true;});set.id='settings';footer.append(element('span',label('everyMinute'),'muted'),set);shell.append(footer);
+  const footer=element('footer');const set=button('settings',()=>{settings=true;preferencesEditing=true;});set.id='settings';footer.append(element('span',label('everyTwoMinutes'),'muted'),set);shell.append(footer);
   if(!snapshot.connections.length){shell.append(element('p',label('empty'),'muted'),button('connect',async()=>{snapshot=native?await command<Snapshot>('discover',{directory:snapshot.preferences.directory}):snapshot;}));}
   if(snapshot.discoveryError)shell.append(element('p',label(snapshot.discoveryError.code),'error'));
  }

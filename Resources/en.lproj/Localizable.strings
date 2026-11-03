@@ -31,7 +31,7 @@
 "暂不支持查余额" = "Balance unavailable";
 "尚未成功" = "No successful refresh";
 "更新：" = "Updated: ";
-" · 每 1 分钟检查" = " · checked every minute";
+" · 每 2 分钟检查" = " · checked every 2 minutes";
 "已固定 · 点击恢复官方套餐" = "Pinned · restore subscription quotas";
 "固定到菜单栏" = "Pin to menu bar";
 "正在刷新…" = "Refreshing…";
@@ -98,7 +98,7 @@
 "剩余 %@" = "%@ remaining";
 "%@    剩余 %@" = "%@    %@ remaining";
 "Credits 余额：%@" = "Credits balance: %@";
-"更新：%@\n每 1 分钟刷新 · %@" = "Updated: %@\nRefreshes every minute · %@";
+"更新：%@\n每 2 分钟刷新 · %@" = "Updated: %@\nRefreshes every 2 minutes · %@";
 "重置：%@ · 等待服务更新" = "Resets: %@ · waiting for service update";
 "重置：%@\n还有 %@ 天 %@ 小时 %@ 分钟" = "Resets: %@\n%@ days %@ hours %@ minutes remaining";
 "%@ %@ 剩余额度 %@" = "%@ %@ quota remaining %@";
@@ -200,7 +200,6 @@
 "Claude 网络查询失败（%@）" = "Claude network query failed (%@)";
 "Claude 登录失效；请打开 Claude Code 重新登录" = "Claude sign-in expired; sign in again in Claude Code";
 "Claude 登录缺少额度读取权限；请用官方订阅账号重新登录" = "Claude sign-in lacks quota access; sign in again with an official subscription account";
-"Claude 查询过于频繁；等待下次自动刷新" = "Claude queries are rate limited; waiting for the next automatic refresh";
 "Claude 额度接口返回错误（%@）" = "Claude quota service returned an error (%@)";
 "未安装 Antigravity CLI；请安装并登录 agy" = "Antigravity CLI is not installed; install and sign in to agy";
 "请将 Antigravity CLI 升级至 1.1.11 或更新版本" = "Upgrade Antigravity CLI to 1.1.11 or later";
@@ -334,3 +333,5 @@
 "自动（默认）" = "Automatic (default)";
 "按平台默认规则显示额度" = "Use the default quota rule for this provider";
 "在胶囊中显示：%@" = "Show in capsule: %@";
+
+"Claude 查询受限；将在 %@ 后重试" = "Claude usage is rate limited; retry after %@";

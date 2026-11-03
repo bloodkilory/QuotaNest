@@ -54,3 +54,11 @@ assert(captured!.localizedDescription == "CC Switch database not found; configur
 Localization.shared.preference = .chinese
 assert(captured!.localizedDescription == "未找到 CC Switch 数据库；请先在 CC Switch 配置服务")
 print("PASS wrapped source errors, provider/update cached errors, persisted helper status, and external protocol label isolation")
+
+Localization.shared.preference = .english
+assert(L(" · 每 2 分钟检查") == " · checked every 2 minutes")
+assert(L("更新：%@\n每 2 分钟刷新 · %@","12:00","UTC").contains("Refreshes every 2 minutes"))
+assert(L("Claude 查询受限；将在 %@ 后重试","12:10:00") == "Claude usage is rate limited; retry after 12:10:00")
+Localization.shared.preference = .chinese
+assert(L("Claude 查询受限；将在 %@ 后重试","12:10:00").contains("12:10:00"))
+print("PASS two-minute refresh and Claude cooldown translations")

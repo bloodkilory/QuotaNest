@@ -7,11 +7,18 @@ final class NoRedirects: NSObject, URLSessionTaskDelegate {
 final class ClaudeQuotaClient {
     private let queue = DispatchQueue(label: "local.codexquota.claude")
     private let redirectPolicy = NoRedirects()
+    private let configuration: URLSessionConfiguration
+    private let now: () -> Date
+    private let tokenProvider: ((Bool) throws -> String)?
+    private var nextRetry: Date?
+    private var fallbackWait: TimeInterval = 120
+    init(configuration: URLSessionConfiguration = .ephemeral, now: @escaping () -> Date = Date.init, tokenProvider: ((Bool) throws -> String)? = nil) {
+        self.configuration = configuration; self.now = now; self.tokenProvider = tokenProvider
+    }
     private lazy var session: URLSession = {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 25; config.timeoutIntervalForResource = 30
-        config.httpShouldSetCookies = false; config.urlCache = nil
-        return URLSession(configuration: config, delegate: redirectPolicy, delegateQueue: nil)
+        configuration.timeoutIntervalForRequest = 25; configuration.timeoutIntervalForResource = 30
+        configuration.httpShouldSetCookies = false; configuration.urlCache = nil
+        return URLSession(configuration: configuration, delegate: redirectPolicy, delegateQueue: nil)
     }()
     private func credentials(allowPrompt: Bool) throws -> String {
         let file = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/.credentials.json")
@@ -32,22 +39,44 @@ final class ClaudeQuotaClient {
         if let expiry = oauth["expiresAt"] as? Double, expiry / 1000 <= Date().timeIntervalSince1970 { throw QuotaError(message: "Claude 登录已过期；请打开 Claude Code 更新登录后刷新") }
         return token
     }
+    private func limitedError() -> QuotaError {
+        let formatter = DateFormatter(); formatter.timeStyle = .medium
+        return QuotaError(message:"Claude 查询受限；将在 %@ 后重试",arguments:[formatter.string(from:nextRetry!)])
+    }
+    private func rateLimitDelay(_ response: HTTPURLResponse) -> TimeInterval {
+        let value = (response.value(forHTTPHeaderField:"Retry-After") ?? "").trimmingCharacters(in:.whitespacesAndNewlines)
+        if let seconds = Double(value), seconds.isFinite, seconds > 0 { return max(120,seconds) }
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier:"en_US_POSIX"); formatter.timeZone = TimeZone(secondsFromGMT:0)
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss z"
+        if let date = formatter.date(from:value), date > now() { return max(120,date.timeIntervalSince(now())) }
+        return fallbackWait
+    }
     func fetch(allowPrompt: Bool = false, completion: @escaping (Result<QuotaSnapshot, Error>) -> Void) {
         queue.async {
+            if let retry = self.nextRetry, retry > self.now() { completion(.failure(self.limitedError())); return }
             do {
-                let token = try self.credentials(allowPrompt: allowPrompt)
+                let token = try self.tokenProvider?(allowPrompt) ?? self.credentials(allowPrompt: allowPrompt)
                 var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
                 request.setValue("application/json", forHTTPHeaderField: "Accept")
                 self.session.dataTask(with: request) { data, response, error in
-                    if let error { completion(.failure(QuotaError(message: "Claude 网络查询失败（%@）",arguments:[String((error as NSError).code)]))); return }
-                    guard let http = response as? HTTPURLResponse, http.statusCode == 200, let data else {
-                        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-                        let message = code == 401 ? "Claude 登录失效；请打开 Claude Code 重新登录" : code == 403 ? "Claude 登录缺少额度读取权限；请用官方订阅账号重新登录" : code == 429 ? "Claude 查询过于频繁；等待下次自动刷新" : "Claude 额度接口返回错误（%@）"
-                        completion(.failure(QuotaError(message: message,arguments:[String(code)]))); return
+                    self.queue.async {
+                        if let error { completion(.failure(QuotaError(message: "Claude 网络查询失败（%@）",arguments:[String((error as NSError).code)]))); return }
+                        if let http = response as? HTTPURLResponse, http.statusCode == 429 {
+                            self.nextRetry = self.now().addingTimeInterval(self.rateLimitDelay(http))
+                            self.fallbackWait = min(900,self.fallbackWait * 2)
+                            completion(.failure(self.limitedError())); return
+                        }
+                        guard let http = response as? HTTPURLResponse, http.statusCode == 200, let data else {
+                            let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+                            let message = code == 401 ? "Claude 登录失效；请打开 Claude Code 重新登录" : code == 403 ? "Claude 登录缺少额度读取权限；请用官方订阅账号重新登录" : "Claude 额度接口返回错误（%@）"
+                            completion(.failure(QuotaError(message: message,arguments:[String(code)]))); return
+                        }
+                        let result = Result { try ProviderPayload.claude(data) }
+                        if case .success = result { self.nextRetry = nil; self.fallbackWait = 120 }
+                        completion(result)
                     }
-                    completion(Result { try ProviderPayload.claude(data) })
                 }.resume()
             } catch { completion(.failure(error)) }
         }

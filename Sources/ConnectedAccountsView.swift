@@ -109,7 +109,7 @@ enum ConnectedAccountsView {
             if let error = reading.error ?? model.sourceError { card.addArrangedSubview(text(error,size:10,secondary:true,width:204)) }
             let formatter = DateFormatter(); formatter.locale = Localization.shared.locale; formatter.timeStyle = .medium
             let time = reading.lastSuccess.map { formatter.string(from:$0) } ?? L("尚未成功")
-            card.addArrangedSubview(text(L("更新：") + time + L(" · 每 1 分钟检查"),size:10,secondary:true,width:204))
+            card.addArrangedSubview(text(L("更新：") + time + L(" · 每 2 分钟检查"),size:10,secondary:true,width:204))
             card.layoutSubtreeIfNeeded()
             root.addArrangedSubview(GlassAppearance.card(card,width:220,height:card.fittingSize.height))
         }

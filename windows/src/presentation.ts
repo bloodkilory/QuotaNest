@@ -15,7 +15,7 @@ const copy:Record<string,[string,string]>={
  codex:['Codex · Subscription quota','Codex · 套餐余量'], api:['API balance','API 余额'], configuration:['Saved configuration, not observed session routing','已保存配置，不代表当前会话实际路由'],
  available:['Available balance','可用余额'],granted:['Granted','赠送余额'],paid:['Topped up','充值余额'],
  refresh:['Refresh now','立即刷新'],refreshing:['Refreshing…','正在查询…'],updated:['Updated','更新于'],never:['No successful reading yet','尚无成功查询'],stale:['Outdated reading','读数已过期'],
- everyMinute:['Refreshes every minute','每 1 分钟刷新'],settings:['Settings','设置'],back:['Back','返回'],language:['Language','语言'],system:['Follow system','跟随系统'],
+ everyTwoMinutes:['Refreshes every 2 minutes','每 2 分钟刷新'],settings:['Settings','设置'],back:['Back','返回'],language:['Language','语言'],system:['Follow system','跟随系统'],
  connect:['Connect CC Switch','连接 CC Switch'],directory:['CC Switch data directory','CC Switch 数据目录'],scan:['Read saved connections','读取已有连接'],
  empty:['Connect CC Switch to select a DeepSeek official API connection.','连接 CC Switch 后，可选择 DeepSeek 官方 API 配置。'],
  unsupported:['Balance query not supported','尚未适配余额查询'],autostart:['Launch at sign-in','登录时启动'],save:['Save settings','保存设置'],
