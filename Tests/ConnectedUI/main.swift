@@ -45,10 +45,14 @@ for dark in [false,true] {
         if let bitmap = surface.bitmapImageRepForCachingDisplay(in:surface.bounds) {
             surface.cacheDisplay(in:surface.bounds,to:bitmap)
             let card = descendants(surface).first { $0 is NSBox }!
-            let point = card.convert(NSPoint(x:card.bounds.maxX - 8,y:card.bounds.midY),to:surface)
-            let scale = CGFloat(bitmap.pixelsWide) / surface.bounds.width
-            let color = bitmap.colorAt(x:Int(point.x * scale),y:Int((surface.bounds.height - point.y) * scale))!.usingColorSpace(.deviceRGB)!
-            assert(dark ? color.redComponent < 0.45 : color.redComponent > 0.75,"card keeps readable contrast in each appearance")
+            assert(card.window === window && card.isDescendant(of: content), "card must remain attached inside the wrapped content")
+            // 卡片颜色从实际卡片采样；系统材质的后台缓存只保留为诊断图。
+            let cardBitmap = card.bitmapImageRepForCachingDisplay(in: card.bounds)!
+            card.cacheDisplay(in: card.bounds, to: cardBitmap)
+            let point = NSPoint(x: card.bounds.maxX - 8, y: card.bounds.midY)
+            let scale = CGFloat(cardBitmap.pixelsWide) / card.bounds.width
+            let color = cardBitmap.colorAt(x:Int(point.x * scale),y:Int((card.bounds.height - point.y) * scale))!.usingColorSpace(.deviceRGB)!
+            assert(dark ? color.redComponent < 0.45 : color.redComponent > 0.75,"card contrast: dark=\(dark), color=\(color)")
             try! bitmap.representation(using:.png,properties:[:])!.write(to:URL(fileURLWithPath:".build/connected-native-" + (dark ? "dark" : "light") + ".png"))
         } else { fatalError("native snapshot unavailable") }
     }
