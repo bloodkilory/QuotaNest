@@ -66,7 +66,14 @@ for dark in [false, true] {
     window.contentView = surface
     view.text = ""
     surface.layoutSubtreeIfNeeded()
+    window.orderFront(nil)
+    defer { window.orderOut(nil) }
     func sample() -> NSColor {
+        // 系统玻璃需要可见窗口参与合成，不能把离屏缓存当作屏幕结果。
+        surface.layoutSubtreeIfNeeded()
+        view.displayIfNeeded()
+        window.displayIfNeeded()
+        RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
         let image = surface.bitmapImageRepForCachingDisplay(in: surface.bounds)!
         surface.cacheDisplay(in: surface.bounds, to: image)
         return image.colorAt(x: image.pixelsWide * 40 / 64, y: image.pixelsHigh / 2)!.usingColorSpace(.deviceRGB)!
