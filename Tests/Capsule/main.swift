@@ -68,25 +68,26 @@ for dark in [false, true] {
     surface.layoutSubtreeIfNeeded()
     window.orderFront(nil)
     defer { window.orderOut(nil) }
-    func sample() -> NSColor {
+    func sample(_ target: NSView) -> NSColor {
         // 系统玻璃需要可见窗口参与合成，不能把离屏缓存当作屏幕结果。
         surface.layoutSubtreeIfNeeded()
         view.displayIfNeeded()
         window.displayIfNeeded()
         RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
-        let image = surface.bitmapImageRepForCachingDisplay(in: surface.bounds)!
-        surface.cacheDisplay(in: surface.bounds, to: image)
+        let image = target.bitmapImageRepForCachingDisplay(in: target.bounds)!
+        target.cacheDisplay(in: target.bounds, to: image)
         return image.colorAt(x: image.pixelsWide * 40 / 64, y: image.pixelsHigh / 2)!.usingColorSpace(.deviceRGB)!
     }
     view.remaining = 100
-    let full = sample()
-    assert(full.greenComponent - full.redComponent > 0.08, "native glass full: dark=\(dark), color=\(full), container=\(type(of: surface)), visible=\(window.isVisible), size=\(surface.bounds.size)")
+    let full = sample(surface)
+    let contentFull = sample(view)
+    assert(full.greenComponent - full.redComponent > 0.08, "native glass full: dark=\(dark), color=\(full), container=\(type(of: surface)), visible=\(window.isVisible), size=\(surface.bounds.size), contentColor=\(contentFull), contentFrame=\(view.frame), contentBounds=\(view.bounds), hidden=\(view.isHidden), attached=\(view.window === window), active=\(app.isActive), occluded=\(!window.occlusionState.contains(.visible)), scale=\(window.backingScaleFactor), reduce=\(NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency), os=\(ProcessInfo.processInfo.operatingSystemVersionString)")
     view.remaining = nil
-    let empty = sample()
+    let empty = sample(surface)
     assert(abs(empty.greenComponent - empty.redComponent) < 0.03, "native glass empty: dark=\(dark), color=\(empty), container=\(type(of: surface))")
     view.remaining = 100
     view.provider = .claude
-    let claude = sample()
+    let claude = sample(surface)
     assert(claude.redComponent - claude.greenComponent > 0.08, "native glass Claude: dark=\(dark), color=\(claude), container=\(type(of: surface))")
 }
 print("PASS light/dark native glass composition after quota and provider changes")
