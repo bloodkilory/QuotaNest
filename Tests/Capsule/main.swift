@@ -73,14 +73,14 @@ for dark in [false, true] {
     }
     view.remaining = 100
     let full = sample()
-    assert(full.greenComponent - full.redComponent > 0.08)
+    assert(full.greenComponent - full.redComponent > 0.08, "native glass full: dark=\(dark), color=\(full), container=\(type(of: surface)), visible=\(window.isVisible), size=\(surface.bounds.size)")
     view.remaining = nil
     let empty = sample()
-    assert(abs(empty.greenComponent - empty.redComponent) < 0.03)
+    assert(abs(empty.greenComponent - empty.redComponent) < 0.03, "native glass empty: dark=\(dark), color=\(empty), container=\(type(of: surface))")
     view.remaining = 100
     view.provider = .claude
     let claude = sample()
-    assert(claude.redComponent - claude.greenComponent > 0.08)
+    assert(claude.redComponent - claude.greenComponent > 0.08, "native glass Claude: dark=\(dark), color=\(claude), container=\(type(of: surface))")
 }
 print("PASS light/dark native glass composition after quota and provider changes")
 let rep = bitmap(900, 965)
