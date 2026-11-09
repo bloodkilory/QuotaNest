@@ -2,36 +2,28 @@
 <h1 align="center">QuotaNest · 余度</h1>
 <p align="center">AI quotas in your Mac menu bar and Windows tray.<br><a href="README.md">中文</a> · <a href="README.en.md">English</a></p>
 
-AI quota readings for the macOS menu bar and Windows tray, refreshed every 2 minutes. The native Mac app keeps its 64-point capsule and eight official providers. Windows supports Codex and Claude subscriptions plus existing CC Switch DeepSeek API balances. Both apps support Chinese / English and saved model selections per provider.
+AI quota readings for the macOS menu bar and Windows tray, refreshed every 2 minutes. The native Mac app keeps its 64-point capsule and four official subscription providers plus the DeepSeek Harness wallet. Windows supports Codex and Claude subscriptions plus existing CC Switch DeepSeek API balances. Both apps support Chinese / English and saved model selections per provider.
 
 原生 macOS 菜单栏套餐余量与 DeepSeek API 余额，支持中文 / English，统一选择显示来源。
 
-**Updated in v1.9.2:** Mac follows the current Claude Desktop account first, with Claude Code as a verified same-account/organization backup. Switching accounts or organizations clears old readings; details show the active login source. Windows still uses Claude Code sign-in. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2) · [中文文档](README.md)
+**Updated in v1.10.0:** Mac adds the DeepSeek Harness wallet with separate recharge and bonus balances, removes four experimental adapters, and drops the ZCode experimental label. Glass popover interactions, positioning and reopening are improved. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0) · [中文文档](README.md)
 
-## Experimental domestic-provider adapters
+## ZCode and DeepSeek Harness
 
-Five adapters have been added: **Kimi Code, Zhipu ZCode, MiniMax Code, Qoder and Tencent CodeBuddy**. They reuse official logins only: no API-key entry, storage or creation. These are feasibility-based choices, not a popularity ranking. **ZCode Start Plan has been verified with an existing local free account; the other new adapters and paid ZCode Coding Plan have official-source and synthetic-fixture verification only.** The app labels them experimental.
+ZCode reuses an existing personal Coding Plan or Start Plan login and no longer carries an experimental label. Start Plan has an existing local-account verification record; paid Coding Plan has not been verified with a real account. No persistent API keys are created. See [ZCode details](docs/providers/china-login.md).
 
-| Adapter | Supported login | Quota |
-| --- | --- | --- |
-| Kimi Code | Mainland official-client login cache | 5-hour, weekly, monthly |
-| ZCode / GLM | Mainland personal Coding Plan or Start Plan sign-in | Coding Plan 5-hour/weekly/monthly tools; Start Plan daily or one-time balances per model |
-| MiniMax Code | Mainland personal official OAuth | 5-hour and weekly |
-| Qoder | Compatible global npm CLI + Node.js, browser login; reviewed 1.1.68 | Plan, add-on and organization credits; no guessed reset |
-| CodeBuddy | Mainland personal login in the official VS Code extension, default profile | Active-cycle credits; explicit Keychain authorization |
+Select **DeepSeek Harness · Recharge balance** after signing in to the official desktop app. QuotaNest reads `~/.dsh/.credentials.yaml` (or the `DSH_HOME` directory provided to its launch environment) through the system Ruby safe YAML parser. It queries only the fixed official account-summary endpoint. Recharge and bonus wallets stay separate; the capsule displays recharge balance and can switch currencies. This source is independent from CC Switch DeepSeek API balances.
 
-Qoder native-only/CN builds and standalone CodeBuddy CLI logins are not supported. ZCode first exchanges an existing Coding Plan project identifier for a short-lived token; if that query fails, it reads current Start Plan balances using the existing official login and device information. It never claims a plan or creates a persistent API key. Expired sessions must be renewed in official clients. The capsule remains 64 points wide; its right button cycles available periods, with `1d` for daily quota and `Q` (`额` in Chinese) for billing/monthly or one-time quota. Missing logins show unknown, never fake usage.
-
-See evidence and limitations: [Kimi](docs/providers/kimi.md), [ZCode/MiniMax](docs/providers/china-login.md), [Qoder](docs/providers/qoder-codebuddy.md), [CodeBuddy](docs/providers/codebuddy.md).
+The Kimi Code, MiniMax Code, Qoder and CodeBuddy experimental adapters have been removed.
 
 ## Install
 
 | Platform | Download | Display |
 | --- | --- | --- |
-| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.9.2-universal.dmg` | Native menu bar capsule |
-| Windows 11 x64 | `QuotaNest-1.9.2-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
+| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.10.0-universal.dmg` | Native menu bar capsule |
+| Windows 11 x64 | `QuotaNest-1.10.0-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
 
-Both installers and the combined `SHA256SUMS.txt` are in the [v1.9.2 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
+Both installers and the combined `SHA256SUMS.txt` are in the [v1.10.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
 
 Requires macOS 13+. Download the universal DMG from this repository’s **[Releases](https://github.com/bloodkilory/QuotaNest/releases/latest)**, drag the app into **Applications**, eject the image, then open the installed app. Intel and Apple Silicon binaries are included. Provider CLIs are separate prerequisites.
 
@@ -57,7 +49,7 @@ For an unreliable Clash TUN route, the app preference `codexHTTPSProxy` can poin
 
 The default follows macOS: Chinese for a Chinese system language, English otherwise. **Settings → Language → Follow system / 中文 / English** takes effect immediately, including cached readings and errors, and persists only in QuotaNest preferences. Provider names, user connection names, currencies and URLs retain their original values.
 
-The single **Menu bar shows** selector lists eight **Subscription quota** providers and connected supported DeepSeek **API balance** sources, identified by tool and original connection name. Selecting one changes both the capsule and details. Details are 240 points wide, with refresh and settings icons in the title row; Settings keeps its 380-point form width. There is no separate account selection or pin toggle. Settings holds connections, provenance, language, updates, launch at login and quit. Returning from Settings or connecting a new service keeps the current display. Removed or unsupported sources discard their old balances; choose an official provider from the same selector to recover.
+The single **Menu bar shows** selector lists four **Subscription quota** providers, a **DeepSeek Harness** recharge wallet and connected supported DeepSeek **API balance** sources, identified by tool and original connection name. Selecting one changes both the capsule and details. Details are 240 points wide, with refresh and settings icons in the title row; Settings keeps its 380-point form width. There is no separate account selection or pin toggle. Settings holds connections, provenance, language, updates, launch at login and quit. Returning from Settings or connecting a new service keeps the current display. Removed or unsupported sources discard their old balances; choose an official provider from the same selector to recover.
 
 ### Existing CC Switch connections and DeepSeek balances
 

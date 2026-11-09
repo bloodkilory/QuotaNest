@@ -12,12 +12,12 @@ QuotaNest — AI quota, at a glance.
 
 1. Drag QuotaNest.app to Applications. Eject this disk image.
 2. Open the installed app. Look for the provider-icon quota capsule in the menu bar.
-3. Choose a subscription in “Menu bar shows”. For DeepSeek balances, select an existing CC Switch connection in Settings → Connect existing tools.
+3. Choose a subscription in “Menu bar shows”. For DeepSeek Harness, sign in to the official app and select its recharge balance. For DeepSeek API balances, connect an existing CC Switch source in Settings.
 4. Choose Settings → Language for English / 中文, or enable “Launch at login” in Settings.
 
 拖动 QuotaNest.app 到 Applications 文件夹，推出磁盘，再打开已安装的应用。
 应用运行在菜单栏，没有 Dock 图标。请先安装并登录所需平台支持的官方客户端。
-在顶部“菜单栏显示”选择套餐余量；DeepSeek 余额先在“设置 → 连接已有工具…”连接 CC Switch 已有配置。
+在顶部“菜单栏显示”选择套餐余量；DeepSeek Harness 登录后可直接选择充值余额；DeepSeek API 余额先在“设置 → 连接已有工具…”连接 CC Switch 已有配置。
 在“设置 → 语言”切换中文 / English；登录启动和应用更新也在设置中。
 
 This community build is ad-hoc signed, not Apple-notarized.

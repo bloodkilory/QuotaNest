@@ -1,6 +1,13 @@
 import AppKit
 
+// 透明按钮保留辅助功能操作，鼠标由胶囊整体的点击手势处理。
+private final class CapsuleActionButton: NSButton {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
 final class CapsuleView: NSView {
+    private(set) var lastActionEventType: Int = -1
+    private(set) var lastClickX: CGFloat = -1
     var provider: QuotaProviderID = .codex { didSet { needsDisplay = true } }
     var text = "—" { didSet { needsDisplay = true } }
     var remaining: Double? { didSet { needsDisplay = true } }
@@ -9,8 +16,8 @@ final class CapsuleView: NSView {
     var periodText = "1w" { didSet { needsDisplay = true } }
     var canSwitchPeriod = false { didSet { periodButton.isEnabled = canSwitchPeriod; needsDisplay = true } }
     var periodAction: (() -> Void)?
-    let detailButton = NSButton()
-    let periodButton = NSButton()
+    let detailButton: NSButton = CapsuleActionButton()
+    let periodButton: NSButton = CapsuleActionButton()
     var dividerX: CGFloat { bounds.width - 16 }
     var action: (() -> Void)?
 
@@ -25,9 +32,59 @@ final class CapsuleView: NSView {
         periodButton.action = #selector(switchPeriod)
         periodButton.setAccessibilityLabel(L("切换额度周期"))
         periodButton.isEnabled = false
+        detailButton.autoresizingMask = [.width, .height]
+        periodButton.autoresizingMask = [.minXMargin, .height]
+        if #unavailable(macOS 27.0) {
+            addGestureRecognizer(NSClickGestureRecognizer(target: self, action: #selector(clicked(_:))))
+        }
         layoutButtons()
     }
     required init?(coder: NSCoder) { fatalError() }
+    // 外层跟随菜单栏高度，玻璃保持 18 点高，避免拉伸后两端变扁。
+    func configureStatusItem(_ item: NSStatusItem) {
+        frame.size = NSSize(width: 64, height: 18)
+        let container = NSView(frame: bounds)
+        let surface = GlassAppearance.wrap(self, size: bounds.size, cornerRadius: 9)
+        surface.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+        container.addSubview(surface)
+        item.view = container
+        item.highlightMode = false
+        item.target = self
+        item.action = #selector(statusActivated)
+    }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    @objc private func statusActivated() {
+        activateStatusItem(for: NSApp.currentEvent?.type, atScreenPoint: NSEvent.mouseLocation)
+    }
+    func activateStatusItem(for eventType: NSEvent.EventType?, atScreenPoint point: NSPoint) {
+        lastActionEventType = eventType.map { Int($0.rawValue) } ?? -1
+        // 新菜单栏动作不更新 currentEvent；只识别明确的键盘操作，其余按真实指针分区。
+        if #available(macOS 27.0, *),
+           eventType != nil && eventType != .keyDown && eventType != .keyUp {
+            activate(atScreenPoint: point)
+        } else {
+            openDetails()
+        }
+    }
+    @objc private func clicked(_ gesture: NSClickGestureRecognizer) {
+        activate(atX: gesture.location(in: self).x)
+    }
+    // macOS 27 的菜单栏动作给出合成中心点，使用真实鼠标位置换算。
+    func activate(atScreenPoint point: NSPoint) {
+        guard let window else { return }
+        let local = convert(window.convertPoint(fromScreen: point), from: nil)
+        guard bounds.contains(local) else { return }
+        activate(atX: local.x)
+    }
+    // 鼠标坐标按胶囊位置换算，右侧 16 点始终对应周期按钮。
+    func activate(atX x: CGFloat) {
+        lastClickX = x
+        if x >= dividerX {
+            periodButton.performClick(nil)
+        } else {
+            detailButton.performClick(nil)
+        }
+    }
     @objc private func openDetails() { action?() }
     @objc private func switchPeriod() { if canSwitchPeriod { periodAction?() } }
     private func layoutButtons() {
@@ -36,21 +93,20 @@ final class CapsuleView: NSView {
     }
     override func layout() { super.layout(); layoutButtons() }
     override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
+    private var capsuleRect: CGRect {
+        CGRect(x: 0, y: (bounds.height - 18) / 2, width: bounds.width, height: 18)
+    }
     var accentColor: NSColor {
         switch provider {
         case .codex: return NSColor(srgbRed: 0.20, green: 0.44, blue: 0.39, alpha: 1)
         case .claude: return NSColor(srgbRed: 0.63, green: 0.34, blue: 0.24, alpha: 1)
-        case .kimi: return NSColor(srgbRed: 0.26, green: 0.36, blue: 0.69, alpha: 1)
         case .zcode: return NSColor(srgbRed: 0.27, green: 0.39, blue: 0.61, alpha: 1)
-        case .minimax: return NSColor(srgbRed: 0.65, green: 0.31, blue: 0.39, alpha: 1)
-        case .qoder: return NSColor(srgbRed: 0.38, green: 0.31, blue: 0.63, alpha: 1)
-        case .codebuddy: return NSColor(srgbRed: 0.25, green: 0.43, blue: 0.63, alpha: 1)
         case .antigravity: return NSColor(srgbRed: 0.23, green: 0.39, blue: 0.65, alpha: 1)
         }
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let rect = CGRect(x: 1, y: (bounds.height - 18) / 2, width: bounds.width - 2, height: 18)
+        let rect = capsuleRect
         let shape = NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9)
         let dark = GlassAppearance.isDark(effectiveAppearance)
         let solid = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency || NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
@@ -62,7 +118,7 @@ final class CapsuleView: NSView {
             let fraction = min(100, max(0, remaining)) / 100
             let color: NSColor
             if stale { color = NSColor.gray.withAlphaComponent(solid ? 0.65 : 0.35) }
-            else { color = accentColor.withAlphaComponent(solid ? 0.72 : dark ? 0.55 : 0.38) }
+            else { color = accentColor.withAlphaComponent(solid ? 0.85 : 0.78) }
             NSGraphicsContext.saveGraphicsState()
             shape.addClip()
             color.setFill()
@@ -70,11 +126,14 @@ final class CapsuleView: NSView {
             NSGraphicsContext.restoreGraphicsState()
         }
 
-        // A quiet glass rim keeps the capsule visible without a solid black shell.
-        NSColor.white.withAlphaComponent(dark ? 0.30 : 0.75).setStroke()
-        let outline = NSBezierPath(roundedRect: rect.insetBy(dx: 0.25, dy: 0.25), xRadius: 8.75, yRadius: 8.75)
-        outline.lineWidth = 0.5
-        outline.stroke()
+        // 高光与下沿明暗形成玻璃厚度，避免只剩一层半透明底色。
+        if !solid {
+            NSGraphicsContext.saveGraphicsState()
+            shape.addClip()
+            NSGradient(starting: NSColor.white.withAlphaComponent(dark ? 0.20 : 0.36),
+                       ending: NSColor.black.withAlphaComponent(0.06))?.draw(in: rect, angle: -90)
+            NSGraphicsContext.restoreGraphicsState()
+        }
         if showsWallet { ProviderMark.drawDeepSeek(in:CGRect(x:rect.minX + 3,y:rect.midY - 5,width:10,height:10)) }
         else { ProviderMark.draw(provider,in:CGRect(x:rect.minX + 3,y:rect.midY - 5,width:10,height:10),tint:ink) }
 

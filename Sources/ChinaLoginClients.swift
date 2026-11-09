@@ -1,5 +1,4 @@
 import Foundation
-import CryptoKit
 import Darwin
 
 func readChinaCredentialFile(_ file: URL, message: String) throws -> Data {
@@ -36,7 +35,7 @@ final class ChinaQuotaTransport: NSObject, URLSessionDataDelegate {
         if oversized { dataTask.cancel() }
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) { lock.lock(); failed = failed || error != nil; lock.unlock(); done.signal() }
-    func run(_ request: URLRequest, owner: ChinaSessionOwner) throws -> Data {
+    func run(_ request: URLRequest, owner: ChinaSessionOwner, unauthorizedError: Error? = nil) throws -> Data {
         let config = URLSessionConfiguration.ephemeral
         config.httpShouldSetCookies = false; config.httpCookieStorage = nil; config.urlCache = nil; config.urlCredentialStorage = nil
         config.timeoutIntervalForRequest = 20; config.timeoutIntervalForResource = 25
@@ -49,87 +48,10 @@ final class ChinaQuotaTransport: NSObject, URLSessionDataDelegate {
         guard !failed else { throw ChinaLoginPayload.failure("官方额度网络查询失败") }
         guard response?.statusCode == 200 else {
             let status = response?.statusCode ?? 0
+            if (status == 401 || status == 403), let unauthorizedError { throw unauthorizedError }
             throw ChinaLoginPayload.failure(status == 401 || status == 403 ? "官方登录失效或无权限；请打开对应客户端重新登录" : "官方额度接口返回错误（%@）",arguments:[String(status)])
         }
         return data
-    }
-}
-
-final class MiniMaxQuotaClient: ChinaSessionOwner {
-    private let queue = DispatchQueue(label: "local.quotanest.minimax")
-    private let lock = NSLock()
-    private var active: URLSession?
-    private var stopped = false
-    func activate(_ session: URLSession) -> Bool { lock.lock(); defer { lock.unlock() }; if stopped { return false }; active = session; return true }
-    func deactivate(_ session: URLSession) { lock.lock(); defer { lock.unlock() }; if active === session { active = nil } }
-    func shutdown() { lock.lock(); stopped = true; let session = active; lock.unlock(); session?.invalidateAndCancel() }
-    private func readCredential() throws -> String {
-        let env = ProcessInfo.processInfo.environment
-        let override = [env["MINIMAX_DATA_DIR"], env["MAVIS_DATA_DIR"]].compactMap { $0 }.first { !$0.isEmpty }
-        let directory = override.map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL } ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".minimax")
-        let file = directory.appendingPathComponent("auth/prod/cn/mcode-public/auth.json")
-        let data = try readChinaCredentialFile(file, message: "未找到有效的 MiniMax Code 国内官方登录；请运行 mcode login")
-        return try ChinaLoginPayload.credential(data, dataDirectory: directory)
-    }
-    private func request(_ url: URL, token: String, body: Data? = nil) throws -> Data {
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        if url.host == "agent.minimaxi.com" {
-            if let body { request.httpMethod = "POST"; request.httpBody = body }
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("MiniMaxCode", forHTTPHeaderField: "User-Agent")
-            let query = URLComponents(url: url, resolvingAgainstBaseURL: false)!
-            let millis = query.queryItems!.first { $0.name == "unix" }!.value!
-            let second = String(Int64(millis)! / 1000)
-            let path = query.percentEncodedPath + "?" + query.percentEncodedQuery!
-            let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.!~*'()")
-            let encoded = path.addingPercentEncoding(withAllowedCharacters: allowed)!
-            let bodyText = body.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-            func md5(_ text: String) -> String { Insecure.MD5.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined() }
-            request.setValue(md5(encoded + "_" + bodyText + md5(millis) + "ooui"), forHTTPHeaderField: "yy")
-            request.setValue(second, forHTTPHeaderField: "x-timestamp")
-            request.setValue(md5(second + "I*7Cf%WZ#S&%1RlZJ&C2" + (body == nil ? "" : bodyText)), forHTTPHeaderField: "x-signature")
-        }
-        return try ChinaQuotaTransport().run(request, owner: self)
-    }
-    func fetch(completion: @escaping (Result<QuotaSnapshot, Error>) -> Void) {
-        queue.async { completion(Result {
-            let token = try self.readCredential()
-            // The personal workspace supplies X-Group-Id; never select an arbitrary team.
-            let millis = String(Int64(Date().timeIntervalSince1970 * 1000))
-            var url = URLComponents(string: "https://agent.minimaxi.com/matrix/api/v1/user/get_user_extra_info")!
-            url.queryItems = [("device_platform", "mcode"), ("biz_id", "3"), ("app_id", "3001"), ("version_code", "22201"), ("unix", millis), ("timezone_offset", String(TimeZone.current.secondsFromGMT())), ("sys_language", "zh"), ("lang", "zh"), ("device_id", "0"), ("os_name", "darwin"), ("browser_name", "mcode"), ("user_id", "0"), ("client", "mcode")].map { URLQueryItem(name: $0.0, value: $0.1) }
-            var identityURL = url
-            identityURL.path = "/v1/api/user/info"
-            let identityRoot = try ChinaLoginPayload.matrixObject(self.request(identityURL.url!, token: token))
-            let identityData = identityRoot["data"] as? [String: Any] ?? identityRoot
-            let info = identityData["userInfo"] as? [String: Any] ?? identityData["user_info"] as? [String: Any] ?? [:]
-            guard let userID = ChinaLoginPayload.header(info["realUserID"] ?? info["real_user_id"]) else { throw ChinaLoginPayload.failure("MiniMax 官方登录身份无效；请重新登录") }
-            url.queryItems = url.queryItems?.map { $0.name == "user_id" ? URLQueryItem(name: "user_id", value: userID) : $0 }
-            let root = try ChinaLoginPayload.matrixObject(self.request(url.url!, token: token, body: Data("{}".utf8)))
-            let personal = try ChinaLoginPayload.minimaxPersonalWorkspace(root)
-            var group = ChinaLoginPayload.minimaxGroup(personal)
-            if group == nil {
-                // Match the official client's scoped membership lookup; never fall back to a team.
-                let workspaceID: Any?
-                if let text = ChinaLoginPayload.header(personal["workspace_id"]) { workspaceID = text }
-                else if let number = ChinaLoginPayload.number(personal["workspace_id"]), number >= 0 { workspaceID = number }
-                else { workspaceID = nil }
-                guard let workspaceID else { throw ChinaLoginPayload.failure("MiniMax 个人工作区信息不完整；请在官方客户端检查") }
-                var membershipURL = url
-                membershipURL.path = "/matrix/api/v1/commerce/get_membership_info"
-                let body = try JSONSerialization.data(withJSONObject: ["workspace_id": workspaceID])
-                let membership = try ChinaLoginPayload.matrixObject(self.request(membershipURL.url!, token: token, body: body))
-                group = ChinaLoginPayload.minimaxGroup(membership)
-            }
-            guard let group else { throw ChinaLoginPayload.failure("MiniMax 未提供个人 Token Plan 额度账户；请在官方客户端检查套餐") }
-            var quota = URLRequest(url: URL(string: "https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains")!)
-            quota.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            quota.setValue(group, forHTTPHeaderField: "X-Group-Id")
-            quota.setValue("application/json", forHTTPHeaderField: "Accept")
-            return try ChinaLoginPayload.minimax(ChinaQuotaTransport().run(quota, owner: self))
-        }) }
     }
 }
 

@@ -31,8 +31,12 @@ for dark in [false,true] {
     assert(height > 100 && height < 220,"successful API balance stays compact")
     content.frame = NSRect(x:0,y:0,width:240,height:height)
     let surface = GlassAppearance.wrap(content,size:content.frame.size)
-    assert(!(surface is NSVisualEffectView),"NSPopover owns the backdrop; a second effect view produces mismatched corner edges")
-    assert(surface.layer?.cornerRadius ?? 0 == 0,"popover content must not draw its own rounded boundary")
+    if let glassType = NSClassFromString("NSGlassEffectView") {
+        assert(surface.isKind(of: glassType), "new macOS must use the native glass surface")
+        assert(surface.value(forKey: "contentView") as? NSView === content, "native glass must retain the interactive content")
+    } else {
+        assert(surface is NSVisualEffectView && surface.subviews.contains(content), "older macOS keeps a native material behind the content")
+    }
     let window = NSWindow(contentRect:surface.bounds,styleMask:[.borderless],backing:.buffered,defer:false)
     window.appearance = app.appearance; window.contentView = surface
     window.layoutIfNeeded(); surface.layoutSubtreeIfNeeded()

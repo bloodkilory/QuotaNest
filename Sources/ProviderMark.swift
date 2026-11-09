@@ -4,7 +4,7 @@ import AppKit
 enum ProviderMark {
     private static let officialMarks: [QuotaProviderID: NSImage] = {
         var marks: [QuotaProviderID: NSImage] = [:]
-        for provider in [QuotaProviderID.kimi, .zcode, .minimax, .qoder, .codebuddy] {
+        for provider in [QuotaProviderID.zcode] {
             let name = provider.rawValue + ".png"
             let bundled = Bundle.main.resourceURL?.appendingPathComponent("provider-marks/" + name)
             let development = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -44,7 +44,7 @@ enum ProviderMark {
         case .codex: path = codex
         case .antigravity: path = antigravity
         case .claude: path = claude
-        case .kimi, .zcode, .minimax, .qoder, .codebuddy: return
+        case .zcode: return
         }
         let box = path.boundingBoxOfPath
         let scale = min(rect.width / box.width, rect.height / box.height)

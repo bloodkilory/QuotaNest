@@ -12,11 +12,11 @@
 
 ---
 
-QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每 2 分钟刷新。Mac 保留原生 64 点胶囊与八个官方平台；Windows 支持 Codex、Claude 官方套餐与 CC Switch 已有 DeepSeek API 余额。两端均支持中文 / English 和按平台保存模型选择。
+QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每 2 分钟刷新。Mac 保留原生 64 点胶囊与四个官方套餐平台及 DeepSeek Harness 钱包；Windows 支持 Codex、Claude 官方套餐与 CC Switch 已有 DeepSeek API 余额。两端均支持中文 / English 和按平台保存模型选择。
 
 AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per-provider model selection.
 
-**v1.9.2 更新**：Mac 优先跟随 Claude 桌面端当前账号；桌面登录失效时，仅使用同账号、同组织的 Claude Code 登录作为备用。切换账号/组织会清除旧额度，详情显示当前登录来源。Windows 仍使用 Claude Code 登录。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2) · [English documentation](README.en.md)
+**v1.10.0 更新**：Mac 新增 DeepSeek Harness 官方登录钱包，充值与赠送余额分开展示；移除 Kimi、MiniMax、Qoder、CodeBuddy 实验适配，ZCode 去掉实验性标签。玻璃弹窗改进菜单栏交互和定位，重新打开应用会自动展示详情。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0) · [English documentation](README.en.md)
 
 - **一眼知道还能用多少**：套餐显示剩余百分比与彩色填充，API 钱包显示原币种金额。
 - **统一来源选择**：在顶部“菜单栏显示”中选择官方套餐或已连接的 API 余额，胶囊与详情同步，记住上次选择。
@@ -29,10 +29,10 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 
 | 系统 | 下载 | 使用入口 |
 | --- | --- | --- |
-| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.9.2-universal.dmg` | 菜单栏胶囊 |
-| Windows 11 x64 | `QuotaNest-1.9.2-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
+| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.10.0-universal.dmg` | 菜单栏胶囊 |
+| Windows 11 x64 | `QuotaNest-1.10.0-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
 
-两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.9.2 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.9.2)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
+两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.10.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
 
 **系统要求：macOS 13 或更新版本。** DMG 内含 Intel / Apple Silicon 通用应用；对应平台支持的官方客户端需要另外安装并登录。
 
@@ -47,7 +47,7 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 下载后可对照 Release 中的 `SHA256SUMS.txt` 检查文件完整性：
 
 ```sh
-shasum -a 256 ~/Downloads/QuotaNest-1.9.2-universal.dmg
+shasum -a 256 ~/Downloads/QuotaNest-1.10.0-universal.dmg
 ```
 
 ## 从 CodexQuota 升级
@@ -62,23 +62,13 @@ shasum -a 256 ~/Downloads/QuotaNest-1.9.2-universal.dmg
 | Claude | 优先使用本机 Claude 桌面端当前账号；没有桌面账号的机器继续使用 [Claude Code](https://code.claude.com/docs/en/setup) 的 `claude auth login` | 桌面凭据失效时，仅使用身份核对相同的 Claude Code 登录作为备用 |
 | Antigravity | 安装 [官方 CLI](https://antigravity.google/docs/cli)，版本 ≥ 1.1.11，并完成其官方登录流程 | `agy -p /usage --output-format json` |
 
-### 国内平台 · 实验性接入
+### ZCode 与 DeepSeek Harness
 
-**ZCode Start Plan 已使用本机已有免费账号验证；其余新适配与 ZCode 付费 Coding Plan 仅完成官方代码/接口核对与模拟数据测试。** 它们是按接入可行性选出的首批平台，不是市场份额排名。应用内均标有“实验”，未登录时显示未知，不显示虚构余量。
+ZCode 复用国内个人账号的 Coding Plan 或 Start Plan 登录：付费套餐展示 5 小时、周及月工具额度；Start Plan 按模型展示每日或一次性额度。ZCode 不再标为实验性；本机 Start Plan 已有真实查询记录，付费 Coding Plan 的真实账号验证仍未完成。仅使用已有登录，不创建 API Key。[ZCode 接入说明](docs/providers/china-login.md)。
 
-| 厂商 / 模型系列 | 接入的官方智能体 | 登录要求 | 额度展示 |
-| --- | --- | --- | --- |
-| 月之暗面 / Kimi | Kimi Code | 国内官方客户端登录缓存 | 5 小时、周、月度总额度与编程额度 |
-| 智谱 / GLM | ZCode | 国内个人账号；已有 Coding Plan 或 Start Plan 登录 | Coding Plan 5 小时、周、月工具额度；Start Plan 按模型展示每日或一次性额度 |
-| MiniMax / M 系列 | MiniMax Code | 国内官方 OAuth 个人账号 | 5 小时、周 |
-| 阿里旗下 Qoder / 多模型 | Qoder | 全球版官方 npm CLI + Node.js，浏览器登录；已核对 1.1.68 | 订阅积分、加量包、组织资源包；不推算重置时间 |
-| 腾讯 / 多模型编程平台 | CodeBuddy | VS Code 默认配置的国内个人账号官方扩展登录 | 有效周期积分；首次读取需手动授权钥匙串 |
+DeepSeek Harness 安装并登录后，可直接在顶部“菜单栏显示”选择 **DeepSeek Harness · 充值余额**。它读取 `~/.dsh/.credentials.yaml`（启动环境设置 `DSH_HOME` 时读取对应目录），使用系统 `/usr/bin/ruby` 的安全 YAML 解析器，只查询官方充值余额与赠送余额，不相加。胶囊显示充值余额，多个币种可切换；赠送余额在详情单列。它与 CC Switch 的 DeepSeek API 余额是独立来源。[接口及登录说明](docs/contracts/connected-accounts.md)。
 
-模型和智能体不是一回事：GLM、Kimi 等是模型品牌，ZCode、Qoder、CodeBuddy 是使用模型完成工作的客户端；多模型客户端的额度也不等同于某个模型的 API 余额。阿里另有 Qwen Code，字节有豆包 / TRAE，百度有文心 / Comate；它们尚未在本应用实现官方登录额度查询。
-
-**不手动添加 API Key。** 没有 Key 输入、另存或创建功能。用户主动连接 CC Switch 后，可复用其中已有的 DeepSeek 官方 API 凭据，只查询余额。ZCode 优先使用已有 Coding Plan 项目标识换取短期令牌；查询失败后可只读查询当前登录的 Start Plan 模型余额，不领取套餐或创建 Key；官方登录过期后需回到原客户端更新。CodeBuddy 当前不支持独立 CLI，Qoder 当前不支持原生安装版或中国区构建；这些限制会直接显示在应用中。
-
-实现来源、登录路径、支持范围及测试限制：[Kimi](docs/providers/kimi.md) · [ZCode / MiniMax](docs/providers/china-login.md) · [Qoder](docs/providers/qoder-codebuddy.md) · [CodeBuddy](docs/providers/codebuddy.md)。
+Kimi Code、MiniMax Code、Qoder、CodeBuddy 的实验适配已移除。
 
 每个平台独立工作；未安装的服务会显示未连接，不影响其他平台。
 
@@ -102,7 +92,7 @@ shasum -a 256 ~/Downloads/QuotaNest-1.9.2-universal.dmg
 
 DeepSeek 官方连接可查询人民币/美元可用余额及充值、赠送明细，连接后从顶部 **菜单栏显示** 选择标有 **API 余额** 的连接，胶囊与详情同时显示金额；选择标有 **套餐余量** 的官方平台即恢复其套餐指标。选择项包含工具名和原始连接名，支持区分多个连接。连接新服务和设置往返不会改变当前来源；来源被删除或不再支持时丢弃旧余额，仍可从同一选择器恢复到官方平台。同一官方凭据被多个工具使用时合并正在执行的余额请求。仅将已有凭据发给固定的 `https://api.deepseek.com/user/balance`，拒绝重定向，不发起计费模型请求。其他来源目前仅显示配置与能力限制；GLM、Kimi API、Kilo、Kiro、Grok 的新适配不在本版范围。
 
-胶囊与详情使用玻璃风格，胶囊仍为 64 点宽，金额不生成虚假进度。弹窗由系统 NSPopover 统一绘制背景、箭头和圆角，内层卡片保留玻璃风格。深浅外观及减少透明度均保留清晰读数。八个官方平台直接列在顶部来源选择器中；语言、连接管理、更新、登录启动和退出集中在 **设置**。
+胶囊与详情使用玻璃风格，胶囊仍为 64 点宽，金额不生成虚假进度。弹窗由系统 NSPopover 统一绘制背景、箭头和圆角，内层卡片保留玻璃风格。深浅外观及减少透明度均保留清晰读数。四个官方套餐平台及 DeepSeek Harness 钱包直接列在顶部来源选择器中；语言、连接管理、更新、登录启动和退出集中在 **设置**。
 
 OpenAI 标志、Claude Code 像素机器人和 Antigravity 标志替代字母缩写；悬停可查看完整平台名称。
 
@@ -130,13 +120,13 @@ v1.7.0 起，每次启动会静默检查一次本仓库的 GitHub 正式 Release
 
 更新源固定为 `bloodkilory/QuotaNest` 正式 Release，不接受测试版、自定义源或其他仓库。SHA-256 用于核对发布附件完整性；当前仍为 ad-hoc 签名、未公证。
 
-**百分比怎么计算？** 手动选择模型后，仅计算该模型的当前周期；以下为“自动（默认）”规则：Codex 使用主额度桶；Claude 使用各有效额度组；Antigravity 仅使用 **Gemini** 分组。Qoder 优先显示主套餐，主套餐缺失时依次使用加量包、组织资源包，独立资源包不会相互拉低百分比；其他平台同一周期内多个有效额度窗口取最低剩余值，其他模型仍在详情中展示。未获取到 Gemini 额度时显示 `—`，不会改用其他模型额度。它表示最紧张的限制，不是所有模型额度的平均值。详情中保留独立窗口；某个模型组耗尽时，其他组仍可能可用。
+**百分比怎么计算？** 手动选择模型后，仅计算该模型的当前周期；以下为“自动（默认）”规则：Codex 使用主额度桶；Claude 使用各有效额度组；Antigravity 仅使用 **Gemini** 分组。其他平台同一周期内多个有效额度窗口取最低剩余值，其他模型仍在详情中展示。未获取到 Gemini 额度时显示 `—`，不会改用其他模型额度。它表示最紧张的限制，不是所有模型额度的平均值。详情中保留独立窗口；某个模型组耗尽时，其他组仍可能可用。
 
 ## 隐私与数据
 
 - Codex 和 Antigravity 的登录与刷新由各自官方 CLI 处理。
 - Claude 凭证仅在内存中用于向 `https://api.anthropic.com/api/oauth/usage` 发起认证请求；禁用重定向，不写入本应用缓存或日志。该客户端端点可能随服务更新而变化。
-- 国内实验适配仅在内存中使用官方登录，固定官方请求地址、拒绝重定向、限制响应大小，不刷新或改写登录。CodeBuddy 只读取指定扩展的登录记录，后台不会弹出钥匙串授权；Qoder 只调用已核对的官方 WASM 解码器，不执行 CLI 主程序。
+- ZCode 与 DeepSeek Harness 仅在内存中使用官方登录，固定官方请求地址、拒绝重定向、限制响应大小，不刷新或改写登录。Harness 只查询钱包，不调用模型。
 - 查询不会发送模型对话、不自动购买或兑换额度。官方客户端自身的网络行为仍由其实现决定。
 - 本应用没有自建服务器或分析追踪；启动检查及用户触发的更新会连接 GitHub 官方发布服务，不发送平台登录凭据。
 - 本地诊断文件 `~/Library/Application Support/CodexQuota/status.json` 记录刷新时间、次数、额度及错误状态，不保存令牌或账号 ID。提交 Issue 前仍请检查并隐藏不想公开的信息。

@@ -19,6 +19,7 @@ struct ConnectedAccountsPresentation {
     var source: DisplaySource
     var currency: String?
     var sourceError: String?
+    var harnessReading = HarnessReading()
 }
 
 struct ConnectedAccountsActions {
@@ -70,6 +71,8 @@ enum ConnectedAccountsView {
         switch model.source {
         case .official:
             refreshing = officialRefreshing; refreshID = "refresh-official"; accountID = nil; canRefresh = true
+        case .harness:
+            refreshing = model.harnessReading.refreshing; refreshID = "refresh-harness"; accountID = nil; canRefresh = true
         case .api(let id):
             refreshing = model.readings[id]?.refreshing ?? false; refreshID = "refresh-account"; accountID = id
             canRefresh = accounts.contains { $0.id == id }
@@ -82,14 +85,33 @@ enum ConnectedAccountsView {
         header.addArrangedSubview(refresh)
         header.addArrangedSubview(icon("gearshape",label:L("设置"),id:"settings",handler:actions.settings))
         root.addArrangedSubview(header)
-        var sources = QuotaProviderID.allCases.map { DisplaySource.official($0) } + accounts.map { .api($0.id) }
-        var titles = QuotaProviderID.allCases.map { $0.title + " · " + L("套餐余量") + ($0.experimental ? L(" · 实验") : "") }
+        var sources = QuotaProviderID.allCases.map { DisplaySource.official($0) } + [.harness] + accounts.map { .api($0.id) }
+        var titles = QuotaProviderID.allCases.map { $0.title + " · " + L("套餐余量") }
+        titles.append("DeepSeek Harness · " + L("充值余额"))
         titles += accounts.map { "DeepSeek · " + L("API 余额") + " · " + ($0.harness == "claude" ? "Claude Code" : "Codex") + " · " + $0.displayName }
         if !sources.contains(model.source) { sources.append(model.source); titles.append(L("API 余额 · 来源不可用")) }
         root.addArrangedSubview(DisplaySourcePicker(sources:sources,titles:titles,selected:model.source,changed:actions.select))
         switch model.source {
         case .official:
             if let officialDetails { root.addArrangedSubview(officialDetails) }
+        case .harness:
+            let reading = model.harnessReading
+            let card = stack(width:204,spacing:3)
+            card.toolTip = L("来自 DeepSeek Harness 官方登录；充值余额与赠送余额分开展示")
+            let wallets = reading.balance?.normal ?? []
+            let wallet = wallets.first { $0.currency == model.currency } ?? wallets.first
+            card.addArrangedSubview(text(L("充值余额"),size:10,secondary:true,width:204))
+            card.addArrangedSubview(text(wallet?.displayAmount ?? (reading.refreshing ? L("正在查询…") : "—"),size:20,bold:true,width:204))
+            if reading.error != nil && reading.balance != nil { card.addArrangedSubview(text(L("上次成功余额 · 当前数据已过期"),size:10,secondary:true,width:204)) }
+            for other in wallets where other.currency != wallet?.currency { card.addArrangedSubview(text(L("另一币种    ") + other.displayAmount,size:10,secondary:true,width:204)) }
+            for bonus in reading.balance?.bonus ?? [] { card.addArrangedSubview(text(L("赠送余额    ") + bonus.displayAmount,size:10,width:204)) }
+            if let error = reading.error { card.addArrangedSubview(text(error,size:10,secondary:true,width:204)) }
+            if reading.balance == nil { card.addArrangedSubview(text(L("请先在 DeepSeek Harness 官方应用中登录。"),size:10,secondary:true,width:204)) }
+            let formatter = DateFormatter(); formatter.locale = Localization.shared.locale; formatter.timeStyle = .medium
+            let time = reading.lastSuccess.map { formatter.string(from:$0) } ?? L("尚未成功")
+            card.addArrangedSubview(text(L("更新：") + time + L(" · 每 2 分钟检查"),size:10,secondary:true,width:204))
+            card.layoutSubtreeIfNeeded()
+            root.addArrangedSubview(GlassAppearance.card(card,width:220,height:card.fittingSize.height))
         case .api(let id):
             let connection = accounts.first { $0.id == id }
             let reading = connection == nil ? ConnectedAccountReading() : model.readings[id] ?? ConnectedAccountReading()

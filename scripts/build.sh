@@ -11,7 +11,8 @@ done
 cp -R Resources/*.lproj "$APP/Contents/Resources/"
 cp assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp assets/PROVIDER-MARKS.md "$APP/Contents/Resources/PROVIDER-MARKS.md"
-cp Helpers/qoder-usage.cjs "$APP/Contents/Resources/qoder-usage.cjs"
+# Older installed update validators require this resource; it contains no adapter code.
+printf '%s\n' '// Compatibility resource for older QuotaNest update validators.' > "$APP/Contents/Resources/qoder-usage.cjs"
 lipo -create .build/bin/QuotaNestUpdateHelper-arm64 .build/bin/QuotaNestUpdateHelper-x86_64 -output "$APP/Contents/Resources/quotanest-update-helper"
 codesign --force --sign "${SIGNING_IDENTITY:--}" "$APP/Contents/Resources/quotanest-update-helper"
 HELPER_DIGEST=$(shasum -a 256 "$APP/Contents/Resources/quotanest-update-helper" | awk '{print $1}')
@@ -32,8 +33,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>QuotaNest</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.9.2</string>
-<key>CFBundleVersion</key><string>16</string>
+<key>CFBundleShortVersionString</key><string>1.10.0</string>
+<key>CFBundleVersion</key><string>17</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
 <key>LSMinimumSystemVersion</key><string>13.0</string>

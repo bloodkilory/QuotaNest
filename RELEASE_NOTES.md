@@ -1,23 +1,13 @@
-# QuotaNest 1.9.2
+# QuotaNest 1.10.0
 
-- **Mac 优先跟随 Claude 桌面端当前账号**，读取桌面端已有的官方 OAuth 登录查询额度；没有桌面账号的机器保留原 Claude Code 查询方式。
-- 桌面凭据过期或被官方拒绝时，只有经过官方身份接口确认是同一账号、同一组织，才使用 Claude Code 登录作为备用。不同账号或组织不会混用额度。
-- 切换桌面账号或组织时清除旧读数；在途请求若已不属于当前选择则丢弃。详情显示“Claude 桌面端”或“Claude Code 同账号备用”。
-- 保留两分钟刷新及共享限流等待。429 不触发凭据轮换，不通过备用来源绕过等待；登录缓存和令牌只读，不发送模型请求。
-- **Windows 本次仍使用 Claude Code 登录文件，未新增桌面凭据接入。** 同时提供更新版本号的 Windows x64 安装包、Mac 通用 DMG 和统一 `SHA256SUMS.txt`。
+- Mac 新增 **DeepSeek Harness 官方登录钱包**：复用本机已有登录，充值余额和赠送余额分开展示，支持人民币／美元；胶囊显示充值余额，与 CC Switch 的 DeepSeek API 余额保持独立。
+- 移除 Kimi Code、MiniMax Code、Qoder、CodeBuddy 的实验适配；保留 Codex、Claude、Antigravity、ZCode，ZCode 不再标记实验性。ZCode 付费 Coding Plan 的真实账号验证仍未完成。
+- 改进原生玻璃胶囊与弹窗的点击、焦点、定位和设置往返；从系统重新打开应用会自动展示详情，已显示时不会反向关闭。保留失焦及 Escape 关闭。
+- 保留旧更新器要求的 Qoder 兼容占位资源，不包含 Qoder 适配代码。
+- Windows 同步至 1.10.0，仍支持 Codex、Claude 和 CC Switch DeepSeek API 余额；本次未新增 Harness 官方登录或 Mac 玻璃界面功能。
 
-本机 Mac 已使用真实 Claude Desktop 账号验证启动和下一轮自动额度查询。账号/组织隔离、凭据失效和备用切换使用合成数据及模拟 HTTP 验证，未人为破坏真实登录。Windows CI 使用模拟账号验证构建、安装和界面流程，不代替真实 Windows 11 账号及多屏验证。
+本机 Mac 已通过真实 Harness 登录查询余额，并在安装后的界面点击刷新完成目视核验。未调用模型、购买或领取额度，未修改官方登录。解析、来源切换和双语界面使用测试数据验证。Windows 的构建、安装和界面检查由 CI 执行，不代替真实 Windows 11 账号及多屏验证。
 
-## English
+macOS 13+（Intel / Apple Silicon），Windows 11 x64。Mac 为 ad-hoc 签名、未公证；Windows 未配置商业代码签名。
 
-- **Mac follows the current Claude Desktop account first**, using its existing official OAuth login for usage queries. Machines without a desktop account retain the existing Claude Code path.
-- Expired or rejected desktop credentials can use Claude Code only after the official profile confirms the same account and organization. Different accounts or organizations never share readings.
-- Switching the desktop account or organization clears old readings and rejects stale in-flight responses. Details show Claude Desktop or Claude Code backup as the active source.
-- Two-minute refresh and shared rate-limit waits remain. HTTP 429 never rotates credentials or bypasses cooldown. Official login data stays read-only; no model requests are sent.
-- **Windows still uses Claude Code credential files; desktop sign-in integration is Mac-only.** Includes a Windows x64 installer, a universal Mac DMG and one combined `SHA256SUMS.txt`.
-
-A real Claude Desktop account was verified on a local Mac at startup and the next automatic refresh. Account/organization isolation and backup behavior use synthetic credentials and simulated HTTP responses, without invalidating real logins. Windows CI uses synthetic accounts for build/install/UI checks; real Windows 11 accounts and multiple displays remain outside that validation.
-
-macOS 13+ (Intel / Apple Silicon), Windows 11 x64. Community builds remain ad-hoc signed on Mac and commercially unsigned on Windows.
-
-[中文说明](https://github.com/bloodkilory/QuotaNest/blob/v1.9.2/README.md) · [English documentation](https://github.com/bloodkilory/QuotaNest/blob/v1.9.2/README.en.md) · [桌面登录详情](https://github.com/bloodkilory/QuotaNest/blob/v1.9.2/docs/providers/claude-desktop.md)
+[中文说明](https://github.com/bloodkilory/QuotaNest/blob/v1.10.0/README.md) · [English documentation](https://github.com/bloodkilory/QuotaNest/blob/v1.10.0/README.en.md)

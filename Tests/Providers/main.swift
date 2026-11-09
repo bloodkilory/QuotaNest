@@ -37,14 +37,12 @@ expect(weeklyOnly.periods(for: .antigravity) == [.weekly], "Disabled hour window
 expect(ProviderReading(snapshot: noGemini).periods(for: .antigravity).isEmpty, "Other families cannot provide Gemini switch periods")
 
 let monthly = QuotaWindow(usedPercent: 25, windowDurationMins: nil, resetsAt: nil, periodLabel: "月度额度")
-let billing = QuotaBucket(limitId: "qoder", limitName: "Qoder", planType: nil, primary: monthly, secondary: nil, credits: nil)
-let emptyAddon = QuotaBucket(limitId: "qoder-addon", limitName: "Addon", planType: nil, primary: QuotaWindow(usedPercent: 100, windowDurationMins: nil, resetsAt: nil), secondary: nil, credits: nil)
-let credits = ProviderReading(snapshot: QuotaSnapshot(rateLimits: nil, rateLimitsByLimitId: ["qoder": billing, "qoder-addon": emptyAddon]))
-expect(credits.periods(for: .qoder) == [.billing], "Credits use billing period without an invented duration")
-expect(credits.window(for: .qoder, period: .billing)?.remaining == 75, "Exhausted optional add-on does not hide remaining subscription")
-expect(credits.periodLabel(for: .qoder, period: .billing) == "额", "Billing capsule has compact label")
+let billing = QuotaBucket(limitId: "zcode", limitName: "ZCode", planType: nil, primary: monthly, secondary: nil, credits: nil)
+let credits = ProviderReading(snapshot: QuotaSnapshot(rateLimits: billing, rateLimitsByLimitId: nil))
+expect(credits.periods(for: .zcode) == [.billing], "Credits use billing period without an invented duration")
+expect(credits.window(for: .zcode, period: .billing)?.remaining == 75, "Billing retains actual remaining quota")
+expect(credits.periodLabel(for: .zcode, period: .billing) == "额", "Billing capsule has compact label")
 expect(monthly.title == "月度额度", "Calendar-month title preserved")
-expect(QuotaProviderID.allCases.filter { $0.experimental }.count == 5, "Five new adapters explicitly experimental")
 
 
 var chosen = ProviderReading(snapshot:mixed)
@@ -63,9 +61,6 @@ let unknownBucket = QuotaBucket(limitId:"unknown",limitName:"Unknown Model",plan
 chosen.snapshot = QuotaSnapshot(rateLimits:nil,rateLimitsByLimitId:["known":group("Known Model",20),"unknown":unknownBucket])
 chosen.modelID = chosen.models.first { $0.name == "Unknown Model" }!.id
 expect(chosen.selectedModel != nil && chosen.window(for:.claude,period:.weekly) == nil,"unknown selected model never borrows another model's percentage")
-var addon = credits
-addon.modelID = addon.models.first { $0.key == "qoder-addon" }!.id
-expect(addon.window(for:.qoder,period:.billing)?.remaining == 0,"explicit add-on selection is independent of default subscription")
 let duplicateNames = QuotaSnapshot(rateLimits:nil,rateLimitsByLimitId:["a":group("Same",10),"b":group("Same",20)])
 expect(Set(ProviderReading(snapshot:duplicateNames).models.map { $0.id }).count == 2,"duplicate model titles retain distinct radio identities")
 

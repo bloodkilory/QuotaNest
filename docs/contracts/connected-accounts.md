@@ -25,7 +25,7 @@ DeepSeek 官方按 currency 分池，total_balance 是已包含 granted_balance 
 | discover() | 无；用户已主动启动连接流程 | 来源与脱敏候选连接列表 | 不解析/返回凭据；重复发现不自动启用新账户 |
 | resolve(reference) | 已选来源/连接引用 | 当前 generation、路由、CredentialReference | schema 不兼容或来源删除返回明确错误；不降级为读取所有配置 |
 | fetch(context) | pool、generation、凭据解析能力、deadline | 一个或多个同 generation 的 measurement | 最大 30 秒预算；401/403 不立即重试；429 遵循 Retry-After；未知接口不试发推理请求 |
-| map(snapshot, context) | 现有 QuotaSnapshot + 明确来源身份 | 旧平台对应池与 measurement | 不通过百分比猜总金额；保持现有 Codex 主桶、Antigravity Gemini 与 Qoder 资源优先级 |
+| map(snapshot, context) | 现有 QuotaSnapshot + 明确来源身份 | 旧平台对应池与 measurement | 不通过百分比猜总金额；保持现有 Codex 主桶、Antigravity Gemini  |
 
 ## 状态
 
@@ -48,9 +48,23 @@ DeepSeek 官方按 currency 分池，total_balance 是已包含 granted_balance 
 5. Key 仅能查预算：显示“Key 预算”，不冒充账户余额；缺权限引导原工具。
 6. 钱包无总额、赠送额度即将过期、不同币种、没有余额接口：各自准确呈现。
 7. 路由/聚合配置只能证明候选服务：不声称全部会话实际使用同一家。
-8. 来源数据库忙锁/版本不兼容/删除、401、429、查询失败：各状态可复现，八个旧平台不受影响。
+8. 来源数据库忙锁/版本不兼容/删除、401、429、查询失败：各状态可复现，保留的官方套餐平台不受影响。
 9. 自定义脚本、命令型凭据 helper：不执行；不访问任意跨域余额地址。
 10. Kilo BYOK 的平台侧 $0：明确上游计费，不能标免费；Kiro / Grok 共用范围只采用实测返回的身份与池标识。
 11. DeepSeek 的 total 与充值/赠送组成项：总计一次；Claude 推理 `/anthropic` 不用于拼接余额查询地址。
 12. Kimi API 现金负数、代金券与可用余额：保留官方语义；不同区域 Key 不混用；不冒充 Kimi Code 登录额度。
 13. GLM 名称或 OpenAI-compatible 协议不足以证明 Coding Plan/钱包查询能力；缺查询契约只识别配置，不试发计费推理请求。
+
+## 已实现：DeepSeek Harness 本机登录余额
+
+2026-11-09。此节是当前 macOS 实现；前文通用 DTO 仍为设计约定。
+
+| 接口编号 | 接口名称 | 接口简介 | 接口url |
+| --- | --- | --- | --- |
+| QN-H01 | Harness 官方钱包查询 | 新增：只读已有 Harness 登录，分别展示充值和赠送钱包；与 CC Switch API 余额独立 | `GET https://platform.deepseek.com/api/v0/users/get_user_summary` |
+
+- 本地来源 `DisplaySource.harness`；持久化使用 `selectedHarness`。套餐来源保留 `codex`、`claude`、`antigravity`、`zcode`，删除 Kimi、MiniMax、Qoder、CodeBuddy；旧选择无法识别时回到 Codex。ZCode 不再带实验性标签。
+- 登录文件默认 `~/.dsh/.credentials.yaml`，支持应用启动环境的 `DSH_HOME`。安全 YAML 解析只接受 `version: 1` 的 `records["deepseek-account-platform/default"]`，`kind: grant`，payload 含 `version: 1`、非空 token、固定 issuer `https://platform.deepseek.com`。不读写其他服务授权，不更新令牌。
+- 请求头 `x-dsh-auth-token`；固定 HTTPS 主机和 GET 路径，不允许重定向，不请求模型或赠送领取接口。响应只接受 `code == 0`、`data.biz_code == 0`，余额取 `data.biz_data.normal_wallets` 与 `bonus_wallets` 的 `currency`、`balance`。
+- 充值与赠送金额使用 Decimal，按 CNY/USD 分开展示，不相加；空钱包显示未知，实际返回零显示零。胶囊只显示充值余额，赠送余额在详情另列。切换或移除登录后清除旧读数；网络失败显示上次成功金额及过期提示。
+- 实现依据为本机 `/Applications/DeepSeek Harness.app/Contents/Resources/app.asar` 的官方包 `@deepseek-ai/dsh-deepseek-account-platform`、`dsh-credentials-local`、`dsh-client-ui-settings-account`。当前不向 Windows 添加此来源。

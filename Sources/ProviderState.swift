@@ -1,29 +1,20 @@
 import Foundation
 enum QuotaProviderID: String, CaseIterable {
-    case codex, claude, antigravity, kimi, zcode, minimax, qoder, codebuddy
+    case codex, claude, antigravity, zcode
     var title: String {
         switch self {
         case .codex: return "Codex"
         case .claude: return "Claude"
         case .antigravity: return "Antigravity"
-        case .kimi: return "Kimi Code"
         case .zcode: return "智谱 ZCode"
-        case .minimax: return "MiniMax Code"
-        case .qoder: return "Qoder"
-        case .codebuddy: return "腾讯 CodeBuddy"
         }
     }
-    var experimental: Bool { ![Self.codex, .claude, .antigravity].contains(self) }
     var loginHelp: String {
         switch self {
         case .codex: return L("使用本机 Codex 官方登录。")
         case .claude: return L("优先使用 Claude 桌面端当前账号；Claude Code 仅作同账号备用。")
         case .antigravity: return L("使用本机 Antigravity CLI 登录，胶囊默认展示 Gemini。")
-        case .kimi: return L("请先在 Kimi Code 官方客户端完成国内账号登录。")
         case .zcode: return L("请先在官方 ZCode 登录智谱个人账号并连接 Coding Plan 或 Start Plan。仅复用已有登录，不创建 API Key。")
-        case .minimax: return L("请先在官方 MiniMax Code 登录国内个人账号。")
-        case .qoder: return L("需要 Node.js 与兼容的全球版官方 npm Qoder CLI（已核对 1.1.68），通过浏览器登录；暂不支持原生安装版。")
-        case .codebuddy: return L("需要 VS Code 默认配置中的腾讯 CodeBuddy 官方扩展国内个人账号登录。首次读取需手动授权钥匙串；暂不支持独立 CLI 登录。")
         }
     }
 }
@@ -53,7 +44,6 @@ struct ProviderReading {
     func remaining(for provider: QuotaProviderID) -> Double? {
         if let selectedModel { return selectedModel.bucket.remaining }
         if provider == .codex { return snapshot?.remaining }
-        if provider == .qoder { return windows(for: provider).compactMap { $0.remaining }.min() }
         if provider == .antigravity {
             // Never substitute another model family's quota when Gemini is unavailable.
             return snapshot?.buckets.filter {
@@ -79,10 +69,7 @@ extension ProviderReading {
         let buckets: [QuotaBucket]
         switch provider {
         case .codex: buckets = snapshot?.selected.map { [$0.1] } ?? []
-        case .claude, .kimi, .zcode, .minimax, .codebuddy: buckets = snapshot?.buckets ?? []
-        case .qoder:
-            // Add-ons are independent resources, not simultaneous subscription limits.
-            buckets = ["qoder", "qoder-addon", "qoder-org"].compactMap { snapshot?.rateLimitsByLimitId?[$0] }.prefix(1).map { $0 }
+        case .claude, .zcode: buckets = snapshot?.buckets ?? []
         case .antigravity:
             buckets = snapshot?.buckets.filter {
                 $0.limitName?.range(of: #"\bgemini\b"#, options: [.regularExpression, .caseInsensitive]) != nil

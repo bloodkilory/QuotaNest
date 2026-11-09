@@ -105,7 +105,7 @@ erDiagram
 
 事实来源：[Kilo Pass](https://kilo.ai/pricing/kilo-pass)、[Kilo BYOK 计费](https://kilo.ai/docs/gateway/usage-and-billing)、[Kiro ACP V3](https://kiro.dev/docs/cli/v3/acp-migration/)、[Kiro FAQ](https://kiro.dev/faq/)、[Grok Bot 发布说明](https://x.ai/news/introducing-grok-bot)、[Grok 当前 FAQ](https://docs.x.ai/grok/faq)。这些资料证明产品规则或候选接入方式，不证明 QuotaNest 已能查询。
 
-国内 API 依据：[DeepSeek 余额契约](https://api-docs.deepseek.com/api/get-user-balance/)、[Kimi 国内 API 余额契约](https://platform.kimi.com/docs/api/balance)、[GLM Coding Plan](https://docs.bigmodel.cn/cn/coding-plan/overview)。项目原有官方登录边界见 [Kimi Code](../../providers/kimi.md)、[ZCode / BigModel](../../providers/china-login.md)。OpenRouter 等服务转售 DeepSeek / GLM / Kimi 模型时，归属仍是所使用的服务账户，不能拿转售 Key 去请求模型厂商余额。
+国内 API 依据：[DeepSeek 余额契约](https://api-docs.deepseek.com/api/get-user-balance/)、[Kimi 国内 API 余额契约](https://platform.kimi.com/docs/api/balance)、[GLM Coding Plan](https://docs.bigmodel.cn/cn/coding-plan/overview)。项目原有官方登录边界见 Kimi Code（历史适配，现已移除）、[ZCode / BigModel](../../providers/china-login.md)。OpenRouter 等服务转售 DeepSeek / GLM / Kimi 模型时，归属仍是所使用的服务账户，不能拿转售 Key 去请求模型厂商余额。
 
 2026-10-23 12:09（Asia/Shanghai）真实探针：只读 CC Switch 内已有 Claude DeepSeek 连接，确认 origin 为 `https://api.deepseek.com`，以现有凭据 GET `/user/balance`，HTTP 200、约 0.2 秒，解析到 CNY 的 total / granted / topped-up 三项。未发起推理请求，未修改配置或存储凭据。用户真实金额不写入仓库。该机器存在不一致的默认项与路由记录，因此不能仅凭某个 is_current 字段宣称当前所有 Claude 会话都使用 DeepSeek。
 

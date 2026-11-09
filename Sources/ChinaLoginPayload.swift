@@ -16,24 +16,6 @@ enum ChinaLoginPayload {
         guard let value = value as? String, !value.isEmpty, value.utf8.count <= 32768, !value.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else { return nil }
         return value
     }
-    static func matrixObject(_ data: Data) throws -> [String: Any] {
-        let root = try object(data)
-        for (container, field) in [("statusInfo", "code"), ("base_resp", "status_code")] {
-            if let status = root[container] as? [String: Any], let code = number(status[field]), code != 0 {
-                throw failure("MiniMax 官方登录或套餐接口拒绝查询；请在客户端检查")
-            }
-        }
-        return root
-    }
-    static func minimaxGroup(_ body: [String: Any]) -> String? {
-        header(body["op_group_id"]) ?? (body["data"] as? [String: Any]).flatMap { header($0["op_group_id"]) }
-    }
-    static func minimaxPersonalWorkspace(_ body: [String: Any]) throws -> [String: Any] {
-        let nested = body["data"] as? [String: Any]
-        let rows = body["workspaces"] as? [[String: Any]] ?? nested?["workspaces"] as? [[String: Any]] ?? []
-        guard let personal = rows.first(where: { number($0["workspace_type"]) == 0 }) else { throw failure("MiniMax 未提供个人 Token Plan 账户；请在官方客户端检查套餐") }
-        return personal
-    }
     static func zcodePersonalProject(_ metadata: [String: Any]) throws -> (orgID: String, projectID: String) {
         let organizations = (metadata["organizations"] as? [[String: Any]] ?? []).compactMap { org -> [String: Any]? in
             guard header(org["organizationId"]) != nil else { return nil }
@@ -49,34 +31,7 @@ enum ChinaLoginPayload {
               let orgID = header(org["organizationId"]), let projectID = header(project["projectId"]) else { throw failure("ZCode 没有可用的个人套餐项目；请先在官方客户端连接套餐") }
         return (orgID, projectID)
     }
-    static func credential(_ data: Data, dataDirectory: URL, now: Double = Date().timeIntervalSince1970) throws -> String {
-        let root = try object(data)
-        let authHome = dataDirectory.appendingPathComponent("auth").standardizedFileURL.path
-        let hash = Data(SHA256.hash(data: Data((authHome + "\0mcode-public").utf8))).base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-        let key = "com.minimax.mcode.oauth.prod.cn\0" + hash
-        guard number(root["schemaVersion"]) == 1, let records = root["records"] as? [String: Any], let record = records[key] as? [String: Any], number(record["schemaVersion"]) == 1, record["clientId"] as? String == "mcode-public", record["tokenType"] as? String == "Bearer", record["audience"] as? String == "agent-backend", let scopes = record["scopes"] as? [String], scopes.contains("agent.default"), let token = header(record["accessToken"]), let expiry = number(record["expiresAtMs"]) else { throw failure("未找到 MiniMax Code 国内官方 OAuth 登录；请运行 mcode login") }
-        guard expiry / 1000 > now else { throw failure("MiniMax Code 登录已过期；请打开官方客户端更新登录") }
-        return token
-    }
-    static func minimax(_ data: Data) throws -> QuotaSnapshot {
-        let root = try object(data)
-        if let base = root["base_resp"] as? [String: Any], let status = number(base["status_code"]), status != 0 { throw failure("MiniMax 额度查询失败；请在官方客户端检查登录与套餐") }
-        guard let rows = root["model_remains"] as? [[String: Any]], let first = rows.first else { throw failure("MiniMax 未返回可用额度") }
-        func window(_ prefix: String, minutes: Int, resetKey: String) -> QuotaWindow? {
-            // status=3 means unlimited, not a zero-consumption finite allowance.
-            guard number(first[prefix + "_status"]) != 3 else { return nil }
-            let total = number(first[prefix + "_total_count"])
-            let legacyRemaining = number(first[prefix + "_usage_count"])
-            let percent = number(first[prefix + "_remaining_percent"]) ?? ((total ?? 0) > 0 ? legacyRemaining.map { $0 / total! * 100 } : nil)
-            guard let percent, (0...100).contains(percent) else { return nil }
-            let reset = number(first[resetKey]).flatMap { $0 > 0 ? $0 / 1000 : nil }
-            return QuotaWindow(usedPercent: 100 - percent, windowDurationMins: minutes, resetsAt: reset)
-        }
-        let five = window("current_interval", minutes: 300, resetKey: "end_time")
-        let weekly = window("current_weekly", minutes: 10080, resetKey: "weekly_end_time")
-        guard five != nil || weekly != nil else { throw failure("MiniMax 未提供有限额度百分比；请在官方客户端查看") }
-        return QuotaSnapshot(rateLimits: QuotaBucket(limitId: "minimax", limitName: "MiniMax Token Plan", planType: nil, primary: five, secondary: weekly, credits: nil), rateLimitsByLimitId: nil)
-    }
+
 }
 
 extension ChinaLoginPayload {

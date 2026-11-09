@@ -31,10 +31,26 @@ if CommandLine.arguments.contains("--check-connections") || CommandLine.argument
         client.shutdown(); exit(complete && success ? 0 : 1)
     } catch { print(error.localizedDescription); exit(1) }
 }
+if CommandLine.arguments.contains("--check-harness") {
+    let client = HarnessBalanceClient(), done = DispatchSemaphore(value:0)
+    var success = false
+    client.fetch { result in
+        switch result {
+        case .success(let balance):
+            for wallet in balance.normal { print("DeepSeek Harness normal " + wallet.displayAmount) }
+            for wallet in balance.bonus { print("DeepSeek Harness bonus " + wallet.displayAmount) }
+            success = true
+        case .failure(let error): print(error.localizedDescription)
+        }
+        done.signal()
+    }
+    let completed = done.wait(timeout:.now()+40) == .success
+    client.shutdown(); exit(completed && success ? 0 : 1)
+}
 if CommandLine.arguments.contains("--check-all") {
     let group = DispatchGroup()
     let codex = CodexClient(), claude = ClaudeQuotaClient(), antigravity = AntigravityQuotaClient()
-    let kimi = KimiQuotaClient(), zcode = ZCodeQuotaClient(), minimax = MiniMaxQuotaClient(), qoder = QoderQuotaClient(), codebuddy = CodeBuddyQuotaClient()
+    let zcode = ZCodeQuotaClient()
     let report: (String, Result<QuotaSnapshot, Error>) -> Void = { name, result in
         switch result {
         case .success(let snapshot):
@@ -49,14 +65,10 @@ if CommandLine.arguments.contains("--check-all") {
     group.enter(); codex.fetch { report("Codex", $0) }
     group.enter(); claude.fetch { report("Claude", $0) }
     group.enter(); antigravity.fetch { report("Antigravity", $0) }
-    group.enter(); kimi.fetch { report("Kimi (experimental)", $0) }
-    group.enter(); zcode.fetch { report("ZCode (experimental)", $0) }
-    group.enter(); minimax.fetch { report("MiniMax (experimental)", $0) }
-    group.enter(); qoder.fetch { report("Qoder (experimental)", $0) }
-    group.enter(); codebuddy.fetch(allowPrompt: false) { report("CodeBuddy (experimental)", $0) }
+    group.enter(); zcode.fetch { report("ZCode", $0) }
     let completed = group.wait(timeout: .now() + 50) == .success
     codex.shutdown(); claude.shutdown(); antigravity.shutdown()
-    kimi.shutdown(); zcode.shutdown(); minimax.shutdown(); qoder.shutdown(); codebuddy.shutdown()
+    zcode.shutdown()
     exit(completed ? 0 : 1)
 }
 if CommandLine.arguments.contains("--check") {

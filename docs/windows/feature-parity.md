@@ -27,18 +27,16 @@ Compared against macOS and Windows v1.9.2. “Implemented” means code plus aut
 
 ## Remaining official providers / 其余官方平台
 
-The following sources exist in Mac and are **not implemented on Windows**. They are not shown as selectable Windows sources. Existing Mac experimental labels remain in force.
+The following sources exist in Mac and are **not implemented on Windows**. They are not shown as selectable Windows sources.
 
-以下项目在 Windows 尚未适配，不会在来源列表中冒充可用；Mac 的实验适配标记保持原状。
+以下项目在 Windows 尚未适配，不会在来源列表中冒充可用。
 
 | Provider | Mac implementation reference | Required Windows work / 具体缺口 |
 | --- | --- | --- |
 | Antigravity | `Sources/OfficialProviders.swift` | Verify native `agy.exe` packaging/version and noninteractive `/usage` command; remove Unix `/usr/bin/env` and browser blocker assumptions / 原生 CLI 与无交互命令验证 |
-| Kimi Code (experimental) | `Sources/KimiQuotaClient.swift` | Verify Windows OAuth storage for `.kimi-code`/`.kimi`, then port token expiry and grouped coding/total usage / Windows 登录文件与分组额度解析 |
-| ZCode (experimental) | `Sources/ChinaLoginClients.swift` | Verify Windows official credential storage/encryption, project exchange and Start Plan device metadata / 验证登录存储解密、项目会话及免费套餐设备信息 |
-| MiniMax Code (experimental) | `Sources/ChinaLoginClients.swift` | Verify Windows data-dir/official OAuth format and signed CN usage requests / 数据目录、OAuth 格式和国内签名请求 |
-| Qoder (experimental) | `Sources/QoderQuotaClient.swift` | Windows npm/Node discovery and exact verified WASM helper compatibility; native build unsupported in Mac too / npm 路径、WASM 版本兼容性 |
-| CodeBuddy (experimental) | `Sources/CodeBuddyQuotaClient.swift` | Port VS Code Windows secret storage/DPAPI; Mac Keychain/PBKDF decryption cannot be copied / Windows VS Code 凭据解密 |
+| ZCode | `Sources/ChinaLoginClients.swift` | Verify Windows official credential storage/encryption, project exchange and Start Plan device metadata / 验证登录存储解密、项目会话及免费套餐设备信息 |
+
+| DeepSeek Harness | `Sources/HarnessBalanceClient.swift` | Read official local login and display recharge/bonus wallets separately / 读取官方登录并分开展示充值与赠送钱包 |
 
 ## Release validation / 发布验证
 

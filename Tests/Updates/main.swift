@@ -125,7 +125,7 @@ func fixtureApp(_ path: URL, id: String = "local.codexquota", version: String = 
     for dir in ["Contents/MacOS","Contents/Resources/provider-marks"] { try FileManager.default.createDirectory(at:path.appendingPathComponent(dir),withIntermediateDirectories:true) }
     let plist: [String:Any] = ["CFBundleIdentifier":id,"CFBundleExecutable":"QuotaNest","CFBundleShortVersionString":version,"LSMinimumSystemVersion":"13.0"]
     try PropertyListSerialization.data(fromPropertyList:plist,format:.xml,options:0).write(to:path.appendingPathComponent("Contents/Info.plist"))
-    for file in ["Contents/MacOS/QuotaNest","Contents/Resources/qoder-usage.cjs","Contents/Resources/quotanest-update-helper","Contents/Resources/AppIcon.icns"] { try Data("fixture".utf8).write(to:path.appendingPathComponent(file)) }
+    for file in ["Contents/MacOS/QuotaNest","Contents/Resources/quotanest-update-helper","Contents/Resources/AppIcon.icns"] { try Data("fixture".utf8).write(to:path.appendingPathComponent(file)) }
     for file in ["Contents/MacOS/QuotaNest","Contents/Resources/quotanest-update-helper"] { try FileManager.default.setAttributes([.posixPermissions:0o755],ofItemAtPath:path.appendingPathComponent(file).path) }
 }
 try fixtureApp(app)

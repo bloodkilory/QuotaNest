@@ -27,14 +27,8 @@ cp -R Resources/*.lproj .build/localizations.bundle/
 .build/connected-ui-tests
 
 
-"${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/KimiPayload.swift Sources/KimiQuotaClient.swift Tests/Kimi/main.swift -o .build/kimi-tests
-.build/kimi-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/ProviderState.swift Sources/CodexClient.swift Sources/ProviderPayload.swift Sources/ChinaLoginPayload.swift Sources/ChinaLoginClients.swift Tests/ChinaLogin/main.swift -o .build/china-login-tests
 .build/china-login-tests
-"${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/BoundedCommand.swift Sources/QoderPayload.swift Sources/QoderQuotaClient.swift Tests/Qoder/main.swift -o .build/qoder-tests
-.build/qoder-tests
-"${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/ProviderPayload.swift Sources/ChinaLoginPayload.swift Sources/ChinaLoginClients.swift Sources/CodeBuddyPayload.swift Sources/CodeBuddyQuotaClient.swift Tests/CodeBuddy/main.swift -o .build/codebuddy-tests
-.build/codebuddy-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift -swift-version 5 Sources/UpdateModels.swift Sources/ReleaseUpdateClient.swift Sources/UpdateHelperContract.swift Sources/UpdateReplacement.swift Sources/UpdateInstaller.swift Sources/UpdatePrivilegeLauncher.swift Sources/LoginItemManager.swift Sources/CodexClient.swift Sources/QuotaModels.swift Tests/Updates/main.swift -o .build/update-tests
 .build/update-tests
 "${SWIFT_COMPILER[@]}" Sources/Localization.swift Tests/Support.swift -swift-version 5 Sources/UpdateModels.swift Sources/UpdateHelperContract.swift Sources/UpdateReplacement.swift Helpers/Update/main.swift -o .build/update-helper-tests
@@ -43,9 +37,7 @@ if .build/update-helper-tests --request /unapproved/request.json; then
 fi
 "${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Sources/QuotaModels.swift Sources/ProviderState.swift Sources/DisplaySource.swift Sources/UpdateModels.swift Sources/UpdateHelperContract.swift Sources/CCSwitchStore.swift Sources/DeepSeekBalance.swift Sources/DeepSeekBalanceClient.swift Sources/ConnectedAccountState.swift Tests/Localization/main.swift -o .build/localization-tests
 .build/localization-tests
-"${SWIFT_COMPILER[@]}" -swift-version 5 -framework AppKit Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/ProviderState.swift Sources/DisplaySource.swift Sources/CCSwitchStore.swift Sources/DeepSeekBalance.swift Sources/DeepSeekBalanceClient.swift Sources/ConnectedAccountState.swift Sources/GlassAppearance.swift Sources/ConnectedAccountsView.swift Sources/OfficialQuotaView.swift Sources/UpdateModels.swift Sources/UpdateHelperContract.swift Sources/SettingsView.swift Tests/LocalizationUI/main.swift -o .build/localization-ui-tests
+"${SWIFT_COMPILER[@]}" -swift-version 5 -framework AppKit Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/ProviderState.swift Sources/DisplaySource.swift Sources/CCSwitchStore.swift Sources/DeepSeekBalance.swift Sources/DeepSeekBalanceClient.swift Sources/ConnectedAccountState.swift Sources/GlassAppearance.swift Sources/ConnectedAccountsView.swift Sources/GlassPopover.swift Sources/OfficialQuotaView.swift Sources/UpdateModels.swift Sources/UpdateHelperContract.swift Sources/SettingsView.swift Tests/LocalizationUI/main.swift -o .build/localization-ui-tests
 .build/localization-ui-tests
-# Optional offline official-WASM fixture test; never downloads or reads user credentials.
-if [[ -n "${QODER_TEST_BUNDLE:-}" ]]; then
-    node Tests/Qoder/helper.cjs "$QODER_TEST_BUNDLE"
-fi
+"${SWIFT_COMPILER[@]}" -swift-version 5 Sources/Localization.swift Tests/Support.swift Sources/QuotaModels.swift Sources/CodexClient.swift Sources/ProviderState.swift Sources/DisplaySource.swift Sources/ProviderPayload.swift Sources/ChinaLoginPayload.swift Sources/ChinaLoginClients.swift Sources/BoundedCommand.swift Sources/CCSwitchStore.swift Sources/DeepSeekBalance.swift Sources/DeepSeekBalanceClient.swift Sources/HarnessBalanceClient.swift Tests/Harness/main.swift -o .build/harness-tests
+.build/harness-tests

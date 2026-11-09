@@ -7,9 +7,6 @@ enum OfficialQuotaView {
         let lastSuccess = reading.lastSuccess
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 3
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        if selectedProvider.experimental {
-            stack.addArrangedSubview(label(L(selectedProvider == .zcode ? "实验性接入" : "实验性接入 · 尚未用真实账号验证"), size: 11, color: .systemOrange))
-        }
         stack.toolTip = selectedProvider.loginHelp
         if snapshot == nil || errorMessage != nil { stack.addArrangedSubview(label(selectedProvider.loginHelp, color:.secondaryLabelColor)) }
         if let selected = snapshot?.selected {
@@ -64,12 +61,6 @@ enum OfficialQuotaView {
         stack.toolTip! += "\n" + L("更新：%@\n每 2 分钟刷新 · %@",time,TimeZone.current.identifier)
         if selectedProvider == .claude && errorMessage != nil {
             let authorize = AccountActionButton(L("授权 Claude 登录读取"),handler:authorize)
-            authorize.controlSize = .small; authorize.font = .systemFont(ofSize:11)
-            authorize.widthAnchor.constraint(equalToConstant:220).isActive = true
-            authorize.isEnabled = !refreshing; stack.addArrangedSubview(authorize)
-        }
-        if selectedProvider == .codebuddy && errorMessage != nil {
-            let authorize = AccountActionButton(L("授权 CodeBuddy 登录读取"),handler:authorize)
             authorize.controlSize = .small; authorize.font = .systemFont(ofSize:11)
             authorize.widthAnchor.constraint(equalToConstant:220).isActive = true
             authorize.isEnabled = !refreshing; stack.addArrangedSubview(authorize)

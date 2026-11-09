@@ -43,3 +43,15 @@ struct DeepSeekBalance: Equatable {
         return Self(isAvailable:available,wallets:wallets)
     }
 }
+
+struct HarnessBalance {
+    let normal: [DeepSeekWallet]
+    let bonus: [DeepSeekWallet]
+}
+struct HarnessReading {
+    var balance: HarnessBalance?
+    var lastSuccess: Date?
+    var failure: Error?
+    var refreshing = false
+    var error: String? { failure?.localizedDescription }
+}

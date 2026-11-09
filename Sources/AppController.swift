@@ -2,16 +2,20 @@ import AppKit
 final class AppController: NSObject, NSApplicationDelegate {
     private var status: NSStatusItem!
     private let capsule = CapsuleView(frame: NSRect(x: 0, y: 0, width: 64, height: 24))
-    private let popover = NSPopover()
+    private let popover = GlassPopover()
     private let client = CodexClient()
     private var timer: Timer?
     private let claudeClient = ClaudeQuotaClient()
     private let antigravityClient = AntigravityQuotaClient()
-    private let kimiClient = KimiQuotaClient()
     private let zcodeClient = ZCodeQuotaClient()
-    private let minimaxClient = MiniMaxQuotaClient()
-    private let qoderClient = QoderQuotaClient()
-    private let codebuddyClient = CodeBuddyQuotaClient()
+    private let harnessClient = HarnessBalanceClient()
+    private var harnessReading = HarnessReading()
+    private var showsHarness: Bool { previewProvider == nil && displaySelection.source == .harness }
+    private var harnessWallet: DeepSeekWallet? {
+        let wallets = harnessReading.balance?.normal ?? []
+        let preferred = UserDefaults.standard.string(forKey:"harnessCurrency")
+        return wallets.first { $0.currency == preferred } ?? wallets.first
+    }
     private let updateClient = ReleaseUpdateClient()
     private var connectionStore: CCSwitchStore = {
         let standard = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".cc-switch")
@@ -45,6 +49,13 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
     private var displayedPeriod: QuotaPeriod? { reading.period(for: selectedProvider, preferred: preferredPeriod(for: selectedProvider)) }
     private func switchPeriod() {
+        if showsHarness {
+            let wallets = harnessReading.balance?.normal ?? []
+            guard wallets.count > 1 else { return }
+            let index = wallets.firstIndex { $0.currency == harnessWallet?.currency } ?? 0
+            UserDefaults.standard.set(wallets[(index + 1) % wallets.count].currency,forKey:"harnessCurrency")
+            render(); writeDiagnostics(); return
+        }
         if let id = pinnedConnection {
             let wallets = accountReadings[id]?.balance?.wallets ?? []
             guard wallets.count > 1 else { return }
@@ -86,14 +97,12 @@ final class AppController: NSObject, NSApplicationDelegate {
             try? LoginItemManager.setEnabled(true)
         }
         status = NSStatusBar.system.statusItem(withLength: 64)
-        if let button = status.button {
-            capsule.frame = button.bounds; capsule.autoresizingMask = [.width, .height]
-            button.addSubview(capsule)
+        capsule.configureStatusItem(status)
+        capsule.action = { [weak self] in
+            self?.togglePopover()
+            self?.writeDiagnostics()
         }
-        capsule.action = { [weak self] in self?.togglePopover() }
         capsule.periodAction = { [weak self] in self?.switchPeriod() }
-        popover.behavior = .transient
-        popover.animates = true
         let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.refresh() }
         self.timer = timer; timer.tolerance = 2
         RunLoop.main.add(timer, forMode: .common)
@@ -104,9 +113,17 @@ final class AppController: NSObject, NSApplicationDelegate {
         refresh()
         if !CommandLine.arguments.contains("--preview") { readPreviousUpdateStatus(); checkForUpdate() }
     }
+    /// 从访达或系统重新打开菜单栏应用时展示详情，提供可访问的窗口。
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        guard status != nil else { return false }
+        if !popover.isShown {
+            togglePopover()
+        }
+        return false
+    }
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate(); client.shutdown(); claudeClient.shutdown(); antigravityClient.shutdown()
-        kimiClient.shutdown(); zcodeClient.shutdown(); minimaxClient.shutdown(); qoderClient.shutdown(); codebuddyClient.shutdown()
+        zcodeClient.shutdown(); harnessClient.shutdown()
         NSWorkspace.shared.notificationCenter.removeObserver(self)
         NotificationCenter.default.removeObserver(self)
         updateClient.cancel()
@@ -114,9 +131,10 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
     @objc private func languageChanged() { render() }
     @objc private func woke() { refresh() }
-    @objc private func accessibilityChanged() { capsule.needsDisplay = true; if popover.isShown { buildPopover() } }
+    @objc private func accessibilityChanged() { render() }
     @objc private func refresh() {
         for provider in QuotaProviderID.allCases { refresh(provider) }
+        if !CommandLine.arguments.contains("--preview") { refreshHarness() }
         if sourceConnected { discoverConnections() }
     }
     private func accountWallet(_ id: String) -> DeepSeekWallet? {
@@ -153,6 +171,29 @@ final class AppController: NSObject, NSApplicationDelegate {
                 self.render(); self.writeDiagnostics()
             }
         }
+    }
+    private func refreshHarness() {
+        guard !harnessReading.refreshing else { return }
+        harnessReading.refreshing = true
+        harnessClient.fetch(onSourceChange:{
+            DispatchQueue.main.async {
+                self.harnessReading.balance = nil; self.harnessReading.lastSuccess = nil
+                self.render()
+            }
+        }) { result in
+            DispatchQueue.main.async {
+                self.harnessReading.refreshing = false
+                switch result {
+                case .success(let value):
+                    self.harnessReading.balance = value; self.harnessReading.lastSuccess = Date(); self.harnessReading.failure = nil
+                case .failure(let error):
+                    if (error as? DeepSeekQueryError)?.sourceChanged == true { self.harnessReading.balance = nil; self.harnessReading.lastSuccess = nil }
+                    self.harnessReading.failure = error
+                }
+                self.render(); self.writeDiagnostics()
+            }
+        }
+        render()
     }
     private func refreshAccount(_ id: String) {
         guard sourceConnected, linkedConnections.contains(id), connections.contains(where:{ $0.id == id && $0.supportsBalance }) else { return }
@@ -218,7 +259,6 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
     @objc private func manualRefresh() { refresh(selectedProvider) }
     @objc private func authorizeClaude() { refresh(.claude, allowPrompt: true) }
-    @objc private func authorizeCodeBuddy() { refresh(.codebuddy, allowPrompt: true) }
     private func showUpdateState(_ state: UpdateMenuState) {
         updateState = state
         if popover.isShown { buildPopover() }
@@ -315,11 +355,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             }
         },completion:completion)
         case .antigravity: antigravityClient.fetch(completion)
-        case .kimi: kimiClient.fetch(completion)
         case .zcode: zcodeClient.fetch(completion: completion)
-        case .minimax: minimaxClient.fetch(completion: completion)
-        case .qoder: qoderClient.fetch(completion)
-        case .codebuddy: codebuddyClient.fetch(allowPrompt: allowPrompt, completion: completion)
         }
     }
     private func selectSource(_ source: DisplaySource) {
@@ -357,6 +393,7 @@ final class AppController: NSObject, NSApplicationDelegate {
             var value: [String: Any] = ["successfulRefreshes": entry.successes, "refreshing": entry.refreshing]
             let period = entry.period(for: provider, preferred: preferredPeriod(for: provider))
             value["period"] = period?.rawValue ?? "unknown"
+            value["availablePeriods"] = entry.periods(for: provider).map(\.rawValue)
             if let remaining = entry.window(for: provider, period: period)?.remaining { value["remaining"] = remaining }
             if let model = entry.selectedModel { value["model"] = model.name }
             if let date = entry.lastSuccess { value["lastSuccess"] = ISO8601DateFormatter().string(from: date) }
@@ -371,10 +408,24 @@ final class AppController: NSObject, NSApplicationDelegate {
             if let error = reading.error { status["error"] = error }
             return status
         }
-        let value: [String: Any] = ["providers": providers, "selectedProvider": selectedProvider.rawValue, "refreshIntervalSeconds": interval, "loginEnabled": LoginItemManager.enabled, "display": capsule.text, "pid": ProcessInfo.processInfo.processIdentifier,"ccSwitchConnected":sourceConnected,"apiAccounts":accounts]
+        let value: [String: Any] = ["providers": providers, "selectedProvider": selectedProvider.rawValue, "refreshIntervalSeconds": interval, "loginEnabled": LoginItemManager.enabled, "display": capsule.text, "pid": ProcessInfo.processInfo.processIdentifier,"ccSwitchConnected":sourceConnected,"apiAccounts":accounts,"capsuleClickX":Double(capsule.lastClickX),"capsuleEventType":capsule.lastActionEventType]
         if let data = try? JSONSerialization.data(withJSONObject: value, options: [.prettyPrinted, .sortedKeys]) { try? data.write(to: stateDirectory.appendingPathComponent("status.json"), options: .atomic) }
     }
     private func render() {
+        if showsHarness {
+            let wallet = harnessWallet
+            capsule.showsWallet = true; capsule.remaining = nil
+            capsule.stale = harnessReading.error != nil
+            capsule.canSwitchPeriod = (harnessReading.balance?.normal.count ?? 0) > 1
+            capsule.periodText = wallet?.currency == "CNY" ? "¥" : wallet?.currency == "USD" ? "$" : "—"
+            capsule.text = wallet.map { $0.capsuleAmount + (capsule.stale ? "!" : "") } ?? (harnessReading.refreshing ? "···" : "—")
+            let title = "DeepSeek Harness · " + L("充值余额") + " " + (wallet?.displayAmount ?? L("尚无有效读数")) + (capsule.stale ? L("；上次数据已过期") : "")
+            capsule.detailButton.toolTip = title; capsule.detailButton.setAccessibilityLabel(title + L("，打开账户详情"))
+            capsule.periodButton.toolTip = capsule.canSwitchPeriod ? L("切换余额币种") : L("账户钱包余额")
+            capsule.periodButton.setAccessibilityLabel(capsule.periodButton.toolTip!)
+            if popover.isShown { buildPopover() }
+            return
+        }
         if let id = pinnedConnection {
             let entry = accountReadings[id] ?? ConnectedAccountReading(), wallet = accountWallet(id)
             capsule.showsWallet = true; capsule.remaining = nil; capsule.periodText = wallet?.currency == "CNY" ? "¥" : wallet?.currency == "USD" ? "$" : "—"
@@ -409,23 +460,23 @@ final class AppController: NSObject, NSApplicationDelegate {
     private func togglePopover() {
         if popover.isShown { popover.performClose(nil); return }
         buildPopover()
-        if let button = status.button { popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY); NSApp.activate(ignoringOtherApps: true) }
+        if let anchor = status.view ?? status.button { popover.show(below: anchor); NSApp.activate(ignoringOtherApps: true) }
     }
     private func buildPopover() {
         let content: NSStackView
         if showingSettings { content = settingsContent() }
         else {
-            let model = ConnectedAccountsPresentation(connections:connections,enabled:linkedConnections,readings:accountReadings,source:previewProvider.map { .official($0) } ?? displaySelection.source,currency:pinnedConnection.flatMap { UserDefaults.standard.string(forKey:"balanceCurrency." + $0) },sourceError:sourceError)
-            content = ConnectedAccountsView.build(model,officialDetails:pinnedConnection == nil ? officialDetails() : nil,officialRefreshing:reading.refreshing,actions:ConnectedAccountsActions(
+            let model = ConnectedAccountsPresentation(connections:connections,enabled:linkedConnections,readings:accountReadings,source:previewProvider.map { .official($0) } ?? displaySelection.source,currency:showsHarness ? UserDefaults.standard.string(forKey:"harnessCurrency") : pinnedConnection.flatMap { UserDefaults.standard.string(forKey:"balanceCurrency." + $0) },sourceError:sourceError,harnessReading:harnessReading)
+            content = ConnectedAccountsView.build(model,officialDetails:pinnedConnection == nil && !showsHarness ? officialDetails() : nil,officialRefreshing:reading.refreshing,actions:ConnectedAccountsActions(
                 select:{ self.selectSource($0) },
-                refresh:{ if let id = $0 { self.refreshAccount(id) } else { self.manualRefresh() } },
+                refresh:{ if self.showsHarness { self.refreshHarness() } else if let id = $0 { self.refreshAccount(id) } else { self.manualRefresh() } },
                 settings:{ self.showingSettings = true; self.buildPopover() }))
         }
         let focused = (popover.contentViewController?.view.window?.firstResponder as? NSView)?.identifier
         content.layoutSubtreeIfNeeded()
         let height = content.fittingSize.height
         let width: CGFloat = showingSettings ? 380 : ConnectedAccountsView.width
-        let maxHeight = min(650,(status.button?.window?.screen?.visibleFrame.height ?? 730) - 80)
+        let maxHeight = min(650,((status.view ?? status.button)?.window?.screen?.visibleFrame.height ?? 730) - 80)
         content.frame = NSRect(x:0,y:0,width:width,height:height)
         let scroll = NSScrollView(frame:NSRect(x:0,y:0,width:width,height:min(height,maxHeight)))
         scroll.drawsBackground = false; scroll.hasVerticalScroller = height > maxHeight; scroll.documentView = content
@@ -446,7 +497,6 @@ final class AppController: NSObject, NSApplicationDelegate {
             },
             authorize:{
                 if self.selectedProvider == .claude { self.authorizeClaude() }
-                else if self.selectedProvider == .codebuddy { self.authorizeCodeBuddy() }
             })
     }
     private func settingsContent() -> NSStackView {

@@ -12,8 +12,9 @@ func nativeSnapshot(_ content: NSView, name: String, dark: Bool) {
     defer { host.orderOut(nil) }
     let scroll = NSScrollView(frame:content.bounds); scroll.drawsBackground = false; scroll.documentView = content
     let controller = NSViewController(); controller.view = GlassAppearance.wrap(scroll,size:scroll.frame.size)
-    let popover = NSPopover(); popover.animates = false; popover.contentViewController = controller; popover.contentSize = scroll.frame.size
-    popover.show(relativeTo:anchor.bounds,of:anchor,preferredEdge:.minY)
+    let popover = GlassPopover(); popover.contentViewController = controller; popover.contentSize = scroll.frame.size
+    assert(!popover.isOpaque && popover.backgroundColor.alphaComponent == 0, "native glass must not be covered by an opaque popup background")
+    popover.show(below: anchor)
     defer { popover.performClose(nil) }
     RunLoop.current.run(until:Date(timeIntervalSinceNow:0.05))
     let surface = controller.view.window!.contentView!.superview!
@@ -39,6 +40,7 @@ let officialBucket = QuotaBucket(limitId:"codex",limitName:"Codex",planType:"fix
 var officialReading = ProviderReading(snapshot:QuotaSnapshot(rateLimits:officialBucket,rateLimitsByLimitId:nil))
 officialReading.lastSuccess = Date()
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     var settingsOpened = false, refreshes = 0
     var refreshedSources: [String?] = []
@@ -65,7 +67,7 @@ for language in [InterfaceLanguage.chinese,.english] {
     assert(picker(first).accessibilityLabel() == (language == .english ? "Menu bar shows" : "菜单栏显示"))
     assert(first.arrangedSubviews.firstIndex(of:picker(first)) == 1)
     assert(descendants(first).filter { $0 is NSPopUpButton }.count == 1)
-    assert(picker(first).numberOfItems == 9,"8 official sources and only supported connected API sources")
+    assert(picker(first).numberOfItems == QuotaProviderID.allCases.count + 2,"official sources, Harness and supported connected API sources")
     assert(picker(first).itemTitles.last!.hasSuffix(fixture.name),"user names must not be translated")
     assert(!descendants(first).contains { $0.identifier?.rawValue == "pin-account" })
     func choose(_ index: Int) {
@@ -73,7 +75,7 @@ for language in [InterfaceLanguage.chinese,.english] {
         control.sendAction(control.action,to:control.target)
     }
     choose(0); assert(selection.source == .official(.codex) && selection.accountID == nil)
-    choose(8); assert(selection.source == .api(fixture.id) && selection.accountID == fixture.id)
+    choose(QuotaProviderID.allCases.count + 1); assert(selection.source == .api(fixture.id) && selection.accountID == fixture.id)
     let api = view()
     let removed = ConnectedAccountsView.build(ConnectedAccountsPresentation(connections:[],enabled:[],readings:[fixture.id:reading],source:.api(fixture.id),currency:nil,sourceError:nil),actions:actions)
     assert(!(descendants(removed).first { $0.identifier?.rawValue == "refresh-account" } as! NSButton).isEnabled)
@@ -90,16 +92,28 @@ for language in [InterfaceLanguage.chinese,.english] {
     (descendants(api).first { $0.identifier?.rawValue == "settings" } as! NSButton).performClick(nil)
     assert(settingsOpened && selection.source == .api(fixture.id))
     connections.append(CCSwitchConnection(id:"codex|new",providerID:"new",harness:"codex",name:"New",origin:fixture.origin,configurationRole:"默认配置",supportsBalance:true))
-    assert(picker(view()).numberOfItems == 10 && selection.source == .api(fixture.id))
+    assert(picker(view()).numberOfItems == QuotaProviderID.allCases.count + 3 && selection.source == .api(fixture.id))
     connections = []
     let missing = view()
     assert(!descendants(missing).compactMap { ($0 as? NSTextField)?.stringValue }.contains("CNY 18.60"))
     choose(1); assert(selection.source == .official(.claude) && selection.accountID == nil)
     assert(defaults.string(forKey:"pinnedCCSwitchConnection") == nil)
     assert(DisplaySelection(defaults:defaults).source == .official(.claude))
+    selection.select(.harness)
+    let harnessBalance = HarnessBalance(normal:[DeepSeekWallet(currency:"CNY",total:12.34,granted:0,toppedUp:0)],bonus:[DeepSeekWallet(currency:"CNY",total:3.21,granted:0,toppedUp:0)])
+    let harnessReading = HarnessReading(balance:harnessBalance,lastSuccess:Date(),failure:nil,refreshing:false)
+    let harnessModel = ConnectedAccountsPresentation(connections:connections,enabled:Set(connections.map(\.id)),readings:[:],source:.harness,currency:"CNY",sourceError:nil,harnessReading:harnessReading)
+    let harnessView = ConnectedAccountsView.build(harnessModel,actions:actions)
+    let harnessLabels = descendants(harnessView).compactMap { ($0 as? NSTextField)?.stringValue }
+    assert(harnessLabels.contains("CNY 12.34") && harnessLabels.contains(L("赠送余额    ") + "CNY 3.21"),"Harness keeps recharge and bonus amounts separate")
+    assert(!harnessLabels.contains("CNY 15.55"),"Harness does not invent a combined wallet")
+    let harnessRefresh = descendants(harnessView).first { $0.identifier?.rawValue == "refresh-harness" } as! NSButton
+    harnessRefresh.performClick(nil)
+    assert(refreshedSources.last! == nil,"Harness refresh must not target a CC Switch connection")
+    assert(picker(harnessView).titleOfSelectedItem == "DeepSeek Harness · " + L("充值余额"))
     // Real AppKit layout, including long English error text and untouched long user names.
     connections = [fixture]; selection.select(.api(fixture.id))
-    for source in [DisplaySource.api(fixture.id),.official(.codex),.official(.codebuddy)] {
+    for source in [DisplaySource.api(fixture.id),.official(.codex),.official(.zcode),.harness] {
     selection.select(source)
     let content = view(); content.layoutSubtreeIfNeeded()
     let height = content.fittingSize.height
@@ -115,7 +129,7 @@ for language in [InterfaceLanguage.chinese,.english] {
     assert(picker(content).convert(picker(content).bounds,to:content).maxY > height - 130)
     let gear = descendants(content).first { $0.identifier?.rawValue == "settings" }!
     let title = descendants(content).compactMap { $0 as? NSTextField }.first { $0.stringValue == L("余度 QuotaNest") }!
-    let refreshID = selection.accountID == nil ? "refresh-official" : "refresh-account"
+    let refreshID = selection.source == .harness ? "refresh-harness" : selection.accountID == nil ? "refresh-official" : "refresh-account"
     let refreshIcon = descendants(content).first { $0.identifier?.rawValue == refreshID } as! NSButton
     assert(refreshIcon.title.isEmpty && refreshIcon.image != nil && refreshIcon.toolTip == L("立即刷新"))
     func checkHeaderLayout(_ phase: String) {
@@ -161,6 +175,7 @@ for language in [InterfaceLanguage.chinese,.english] {
 }
 print("PASS bilingual native source picker, Codex→API→Claude, settings/new-source stability, removed-source recovery and 240-point rendering")
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     let original = selection.source
     var wentBack = false, connected = false, checked = false, installed = false, login: Bool?, quit = false
@@ -205,8 +220,8 @@ let duplicates = ConnectedAccountsPresentation(connections:[fixture,sameName],en
 var pickedDuplicate: DisplaySource?
 let duplicateView = ConnectedAccountsView.build(duplicates,actions:ConnectedAccountsActions(select:{ pickedDuplicate = $0 },refresh:{ _ in },settings:{}))
 let duplicatePicker = descendants(duplicateView).compactMap { $0 as? DisplaySourcePicker }.first!
-assert(duplicatePicker.numberOfItems == 10,"same-named connections must retain separate source items")
-duplicatePicker.selectItem(at:9); duplicatePicker.sendAction(duplicatePicker.action,to:duplicatePicker.target)
+assert(duplicatePicker.numberOfItems == QuotaProviderID.allCases.count + 3,"same-named connections must retain separate source items")
+duplicatePicker.selectItem(at:QuotaProviderID.allCases.count + 2); duplicatePicker.sendAction(duplicatePicker.action,to:duplicatePicker.target)
 assert(pickedDuplicate == .api(sameName.id))
 print("PASS duplicate user connection names retain independent source identities")
 let namelessGroups = try QuotaSnapshot.decode(Data(#"{"rateLimitsByLimitId":{"group-alpha":{"primary":{"usedPercent":10,"windowDurationMins":300}},"group-beta":{"primary":{"usedPercent":20,"windowDurationMins":10080}}}}"#.utf8))
@@ -219,6 +234,7 @@ for language in [InterfaceLanguage.english,.chinese] {
 print("PASS nameless official quota groups retain original distinct headings in English and Chinese")
 
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     for provider in QuotaProviderID.allCases {
         var failed = officialReading; failed.error = L("DeepSeek 凭据失效；请在 CC Switch 检查")
@@ -243,6 +259,7 @@ print("PASS all eight official provider errors/actions fit 240 points; multiple 
 
 let multiWindow = try QuotaSnapshot.decode(Data(#"{"rateLimitsByLimitId":{"group-a":{"limitName":"Alpha","primary":{"usedPercent":10,"windowDurationMins":300,"resetsAt":1},"secondary":{"usedPercent":30,"windowDurationMins":10080},"credits":{"balance":"7.25","unlimited":false}},"group-b":{"limitName":"Beta","primary":{"usedPercent":20,"windowDurationMins":1440}}}}"#.utf8))
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     let details = OfficialQuotaView.build(provider:.codex,reading:ProviderReading(snapshot:multiWindow),displayedPeriod:.weekly,authorize:{})
     let labels = descendants(details).compactMap { ($0 as? NSTextField)?.stringValue }
@@ -255,6 +272,7 @@ for language in [InterfaceLanguage.chinese,.english] {
 print("PASS compact details retain multiple windows, credits and elapsed-reset status in both languages")
 
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     let expiry = Date().timeIntervalSince1970 + 3600
     let window = QuotaWindow(usedPercent:25,windowDurationMins:nil,resetsAt:nil,periodLabel:"一次性额度",localizesPeriodLabel:true,expiresAt:expiry)
@@ -277,6 +295,7 @@ let modelDetails = OfficialQuotaView.build(provider:.zcode,reading:ProviderReadi
 assert(descendants(modelDetails).compactMap { $0 as? NSButton }.contains { $0.title == "Start Plan · Flash" },"multiple model quotas need native radio controls to choose the capsule reading")
 
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     selection.selectModel(nil,for:.zcode)
     var modelReading = ProviderReading(snapshot:modelSnapshot)
@@ -320,6 +339,7 @@ var removedSelection = ProviderReading(snapshot:modelSnapshot); removedSelection
 let fallbackDetails = OfficialQuotaView.build(provider:.zcode,reading:removedSelection,displayedPeriod:.daily,authorize:{})
 assert(descendants(fallbackDetails).compactMap { $0 as? NSButton }.filter { $0.state == .on }.map { $0.title } == [L("自动（默认）")],"temporarily removed model clearly checks actual Automatic choice")
 for language in [InterfaceLanguage.chinese,.english] {
+    selection.select(.official(.codex))
     useTestLanguage(language)
     var snapshot=QuotaSnapshot(rateLimits:officialBucket,rateLimitsByLimitId:nil)
     snapshot.loginSource="Claude Code 同账号备用"
@@ -330,3 +350,32 @@ for language in [InterfaceLanguage.chinese,.english] {
     assert(view.fittingSize.width<=220.1,"desktop source label stays inside compact details")
 }
 print("PASS compact bilingual Claude login source label")
+
+// 设置与详情切换时，透明面板始终贴近同一菜单栏锚点并保持焦点。
+let popupAnchor = NSView(frame: NSRect(x: 0, y: 0, width: 64, height: 22))
+let popupHost = NSWindow(contentRect: NSRect(x: 1400, y: 949, width: 64, height: 22), styleMask: .borderless, backing: .buffered, defer: false)
+popupHost.contentView = popupAnchor
+let resizingPopup = GlassPopover()
+let popupController = NSViewController()
+popupController.view = GlassAppearance.wrap(NSView(), size: NSSize(width: 240, height: 100))
+resizingPopup.contentViewController = popupController
+resizingPopup.contentSize = NSSize(width: 240, height: 100)
+resizingPopup.show(below: popupAnchor)
+let originalFrame = resizingPopup.frame
+let originalKeyState = resizingPopup.isKeyWindow
+resizingPopup.contentSize = NSSize(width: 380, height: 100)
+assert(abs(resizingPopup.frame.maxY - originalFrame.maxY) < 0.01)
+assert(resizingPopup.isKeyWindow == originalKeyState, "resizing must not steal keyboard focus")
+if let visible = (popupHost.screen ?? NSScreen.main)?.visibleFrame {
+    assert(resizingPopup.frame.maxX <= visible.maxX - 8.0 + 0.01)
+} else {
+    assert(abs(resizingPopup.frame.midX - originalFrame.midX) < 0.01)
+}
+resizingPopup.contentSize = NSSize(width: 240, height: 100)
+assert(resizingPopup.frame == originalFrame)
+resizingPopup.cancelOperation(nil)
+assert(!resizingPopup.isShown, "Escape must close the popup")
+resizingPopup.show(below: popupAnchor)
+resizingPopup.windowDidResignKey(Notification(name: NSWindow.didResignKeyNotification, object: resizingPopup))
+assert(!resizingPopup.isShown, "losing keyboard focus must close the popup")
+print("PASS glass popup anchoring at 240/380/240 points, focus preservation and dismiss actions")

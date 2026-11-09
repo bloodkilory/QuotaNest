@@ -85,7 +85,7 @@ enum UpdateBundleValidator {
               let minimum = plist["LSMinimumSystemVersion"] as? String, let required = DottedVersion(minimum) else { throw UpdateError("更新应用身份或版本不匹配") }
         let os = ProcessInfo.processInfo.operatingSystemVersion
         guard required <= DottedVersion("\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)")! else { throw UpdateError("新版本需要更高版本的 macOS") }
-        for path in ["Contents/MacOS/QuotaNest","Contents/Resources/qoder-usage.cjs","Contents/Resources/quotanest-update-helper","Contents/Resources/AppIcon.icns"] {
+        for path in ["Contents/MacOS/QuotaNest","Contents/Resources/quotanest-update-helper","Contents/Resources/AppIcon.icns"] {
             guard try app.appendingPathComponent(path).resourceValues(forKeys:[.isRegularFileKey]).isRegularFile == true else { throw UpdateError("更新应用缺少必要资源") }
         }
         guard try app.appendingPathComponent("Contents/Resources/provider-marks").resourceValues(forKeys:[.isDirectoryKey]).isDirectory == true else { throw UpdateError("更新应用缺少平台标识") }
