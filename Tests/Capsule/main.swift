@@ -42,8 +42,10 @@ for dark in [false,true] {
     let glass = render(nil, dark: dark)
     let top = glass.colorAt(x: 80, y: 14)!.usingColorSpace(.deviceRGB)!
     let bottom = glass.colorAt(x: 80, y: 34)!.usingColorSpace(.deviceRGB)!
+    let reducedTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+    let increasedContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     assert(top.redComponent - bottom.redComponent > 0.06,
-           "glass needs a visible highlight instead of a flat translucent fill")
+           "glass highlight: dark=\(dark), reducedTransparency=\(reducedTransparency), increasedContrast=\(increasedContrast), top=\(top), bottom=\(bottom)")
 }
 print("PASS glass capsule: light/dark 0/50/75/100%, clamping, unknown, stale and reduced transparency")
 // 检查系统玻璃和实际胶囊内容叠加后的像素。
