@@ -44,8 +44,17 @@ for dark in [false,true] {
     let bottom = glass.colorAt(x: 80, y: 34)!.usingColorSpace(.deviceRGB)!
     let reducedTransparency = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
     let increasedContrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
-    assert(top.redComponent - bottom.redComponent > 0.06,
-           "glass highlight: dark=\(dark), reducedTransparency=\(reducedTransparency), increasedContrast=\(increasedContrast), top=\(top), bottom=\(bottom)")
+    if reducedTransparency || increasedContrast {
+        assert(top.alphaComponent > 0.99 && bottom.alphaComponent > 0.99,
+               "accessibility solid background must be opaque")
+        assert(abs(top.redComponent - bottom.redComponent) < 0.01 &&
+               abs(top.greenComponent - bottom.greenComponent) < 0.01 &&
+               abs(top.blueComponent - bottom.blueComponent) < 0.01,
+               "accessibility solid background must remain uniform")
+    } else {
+        assert(top.redComponent - bottom.redComponent > 0.06,
+               "glass highlight: dark=\(dark), top=\(top), bottom=\(bottom)")
+    }
 }
 print("PASS glass capsule: light/dark 0/50/75/100%, clamping, unknown, stale and reduced transparency")
 // 检查系统玻璃和实际胶囊内容叠加后的像素。
