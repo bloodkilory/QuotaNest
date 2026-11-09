@@ -57,13 +57,20 @@ for dark in [false,true] {
     }
 }
 print("PASS glass capsule: light/dark 0/50/75/100%, clamping, unknown, stale and reduced transparency")
-// 检查系统玻璃和实际胶囊内容叠加后的像素。
+// 检查包装后的真实胶囊挂载和绘制；后台系统材质缓存不代表屏幕最终合成。
+// 容器缓存保留作诊断，系统玻璃最终外观通过安装版目视核验。
 for dark in [false, true] {
     let view = CapsuleView(frame: NSRect(x: 0, y: 0, width: 64, height: 37))
     let surface = GlassAppearance.wrap(view, size: view.bounds.size)
     let window = NSWindow(contentRect: surface.bounds, styleMask: .borderless, backing: .buffered, defer: false)
     window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
     window.contentView = surface
+    assert(view.isDescendant(of: surface) && view.window === window, "glass wrapper must retain and attach its content")
+    assert(view.bounds.size == surface.bounds.size && view.bounds.width == 64 && view.bounds.height == 37,
+           "wrapped capsule must preserve its display size")
+    if surface.responds(to: NSSelectorFromString("contentView")) {
+        assert((surface.value(forKey: "contentView") as? NSView) === view, "glass wrapper must embed the supplied content view")
+    }
     view.text = ""
     surface.layoutSubtreeIfNeeded()
     window.orderFront(nil)
@@ -79,18 +86,18 @@ for dark in [false, true] {
         return image.colorAt(x: image.pixelsWide * 40 / 64, y: image.pixelsHigh / 2)!.usingColorSpace(.deviceRGB)!
     }
     view.remaining = 100
-    let full = sample(surface)
-    let contentFull = sample(view)
-    assert(full.greenComponent - full.redComponent > 0.08, "native glass full: dark=\(dark), color=\(full), container=\(type(of: surface)), visible=\(window.isVisible), size=\(surface.bounds.size), contentColor=\(contentFull), contentFrame=\(view.frame), contentBounds=\(view.bounds), hidden=\(view.isHidden), attached=\(view.window === window), active=\(app.isActive), occluded=\(!window.occlusionState.contains(.visible)), scale=\(window.backingScaleFactor), reduce=\(NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency), os=\(ProcessInfo.processInfo.operatingSystemVersionString)")
+    let containerFull = sample(surface)
+    let full = sample(view)
+    assert(full.greenComponent - full.redComponent > 0.08, "native glass full: dark=\(dark), color=\(full), container=\(type(of: surface)), visible=\(window.isVisible), size=\(surface.bounds.size), containerColor=\(containerFull), contentFrame=\(view.frame), contentBounds=\(view.bounds), hidden=\(view.isHidden), attached=\(view.window === window), active=\(app.isActive), occluded=\(!window.occlusionState.contains(.visible)), scale=\(window.backingScaleFactor), reduce=\(NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency), os=\(ProcessInfo.processInfo.operatingSystemVersionString)")
     view.remaining = nil
-    let empty = sample(surface)
+    let empty = sample(view)
     assert(abs(empty.greenComponent - empty.redComponent) < 0.03, "native glass empty: dark=\(dark), color=\(empty), container=\(type(of: surface))")
     view.remaining = 100
     view.provider = .claude
-    let claude = sample(surface)
+    let claude = sample(view)
     assert(claude.redComponent - claude.greenComponent > 0.08, "native glass Claude: dark=\(dark), color=\(claude), container=\(type(of: surface))")
 }
-print("PASS light/dark native glass composition after quota and provider changes")
+print("PASS light/dark glass wrapper attachment and content pixels after quota and provider changes")
 let rep = bitmap(900, 965)
 NSGraphicsContext.saveGraphicsState()
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
