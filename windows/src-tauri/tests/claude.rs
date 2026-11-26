@@ -119,7 +119,10 @@ fn fable_scoped_weekly_quota_uses_its_own_percent_and_reset() {
     assert!(service.select_model("fable").is_ok());
     assert_eq!(service.display_amount(), "35%");
     assert_eq!(service.display_window().unwrap().minutes, Some(10080));
-    assert_eq!(service.display_window().unwrap().resets_at, Some(1793354400.));
+    assert_eq!(
+        service.display_window().unwrap().resets_at,
+        Some(1793354400.)
+    );
     for (percent, remaining) in [
         (json!(0), Some(100.)),
         (json!(100), Some(0.)),
