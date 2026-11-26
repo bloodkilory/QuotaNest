@@ -33,8 +33,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 <key>CFBundleExecutable</key><string>QuotaNest</string>
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.10.0</string>
-<key>CFBundleVersion</key><string>17</string>
+<key>CFBundleShortVersionString</key><string>1.10.1</string>
+<key>CFBundleVersion</key><string>18</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string>
 <key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string></array>
 <key>LSMinimumSystemVersion</key><string>13.0</string>

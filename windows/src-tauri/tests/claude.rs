@@ -89,6 +89,59 @@ fn claude_is_selectable_without_cc_switch_or_prior_login() {
     let mut service = Service::new(Preferences::defaults(dir.path()));
     assert!(service.select("claude").is_ok());
 }
+
+#[test]
+fn fable_scoped_weekly_quota_uses_its_own_percent_and_reset() {
+    use quotanest_windows::service::{Data, Preferences, Service};
+    let dir = tempfile::tempdir().unwrap();
+    let mut service = Service::new(Preferences::defaults(dir.path()));
+    service.select("claude").unwrap();
+    // 使用新版响应结构；未触发限制的 Fable 额度也必须保留。
+    let mut payload = json!({
+        "five_hour": {"utilization": 12},
+        "seven_day": {"utilization": 76},
+        "limits": [{
+            "kind": "weekly_scoped",
+            "group": "weekly",
+            "percent": 65,
+            "severity": "normal",
+            "resets_at": "2026-10-30T10:00:00Z",
+            "scope": {"model": {"id": null, "display_name": "Fable"}, "surface": null},
+            "is_active": false
+        }],
+        "weekly_scoped_shares": [{
+            "limit_index": 0,
+            "used_percent_of_weekly": 33,
+            "allowance_percent_of_weekly": 50
+        }]
+    });
+    service.state.reading.data = Some(Data::Quota(models::parse_claude(&payload).unwrap()));
+    assert!(service.select_model("fable").is_ok());
+    assert_eq!(service.display_amount(), "35%");
+    assert_eq!(service.display_window().unwrap().minutes, Some(10080));
+    assert_eq!(service.display_window().unwrap().resets_at, Some(1793354400.));
+    for (percent, remaining) in [
+        (json!(0), Some(100.)),
+        (json!(100), Some(0.)),
+        (json!(null), None),
+    ] {
+        payload["limits"][0]["percent"] = percent;
+        service.state.reading.data = Some(Data::Quota(models::parse_claude(&payload).unwrap()));
+        assert_eq!(service.selected_model(), Some("fable"));
+        assert_eq!(service.display_window().unwrap().remaining, remaining);
+    }
+    let has_fable = |p: &serde_json::Value| {
+        models::parse_claude(p)
+            .unwrap()
+            .windows
+            .iter()
+            .any(|w| w.label.as_deref() == Some("fable"))
+    };
+    payload["limits"][0]["scope"]["surface"] = json!("cowork");
+    assert!(!has_fable(&payload));
+    payload["limits"] = json!(null);
+    assert!(!has_fable(&payload));
+}
 #[test]
 fn official_period_uses_tightest_group_and_display_choice_is_saved_per_source() {
     use quotanest_windows::service::{Data, Preferences, Service};

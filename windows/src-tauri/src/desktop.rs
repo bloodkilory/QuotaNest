@@ -175,6 +175,7 @@ fn update_tray(backend: &Backend, app: &tauri::AppHandle) {
                 let model = match w.label.as_deref() {
                     Some("sonnet") => "Sonnet",
                     Some("opus") => "Opus",
+                    Some("fable") => "Fable",
                     Some("claude") => "Claude subscription",
                     Some(other) => other,
                     None => "",

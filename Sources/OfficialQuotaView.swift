@@ -8,27 +8,41 @@ enum OfficialQuotaView {
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 3
         stack.edgeInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
         stack.toolTip = selectedProvider.loginHelp
-        if snapshot == nil || errorMessage != nil { stack.addArrangedSubview(label(selectedProvider.loginHelp, color:.secondaryLabelColor)) }
+        let secondaryColor = NSColor(name: nil) { appearance in
+            GlassAppearance.isDark(appearance)
+                ? NSColor(white: 0.94, alpha: 0.80)
+                : NSColor(white: 0.14, alpha: 0.78)
+        }
+        if snapshot == nil || errorMessage != nil { stack.addArrangedSubview(label(selectedProvider.loginHelp, color: secondaryColor)) }
         if let selected = snapshot?.selected {
             let source = selectedProvider == .codex ? (selected.1.planType ?? L("Codex 登录账号")) : L("本机 ") + selectedProvider.title + L(" 官方登录")
             stack.toolTip! += "\n" + source + L(" · 胶囊：") + (reading.selectedModel.map { $0.name + " " } ?? (selectedProvider == .antigravity ? "Gemini " : "")) + reading.periodLabel(for:selectedProvider,period:displayedPeriod)
         }
         if let errorMessage { stack.addArrangedSubview(label("⚠ \(errorMessage)" + (snapshot == nil ? "" : L("\n当前百分比为上次成功查询结果。")), color: .systemOrange)) }
         if let snapshot {
-            if let source = snapshot.loginSource { stack.addArrangedSubview(label(L("登录来源：%@",L(source)),color:.secondaryLabelColor)) }
+            if let source = snapshot.loginSource { stack.addArrangedSubview(label(L("登录来源：%@",L(source)),color:secondaryColor)) }
             let models = reading.models
             let showModelChoice = models.count > 1 || reading.selectedModel != nil
             func radio(_ title: String, id: String?) -> NSButton {
+                let selected = reading.selectedModel?.id == id
                 let button = AccountActionButton(title,id:"quota-model-" + (id ?? "automatic"),handler:{ selectModel(id) })
-                button.setButtonType(.radio); button.controlSize = .small; button.font = .systemFont(ofSize:11)
-                button.state = reading.selectedModel?.id == id ? .on : .off
+                button.setButtonType(.toggle)
+                button.isBordered = false
+                button.imagePosition = .imageLeading
+                button.alignment = .left
+                button.image = radioImage(selected: false)
+                button.alternateImage = radioImage(selected: true)
+                button.controlSize = .small
+                button.font = .systemFont(ofSize: 11, weight: selected ? .medium : .regular)
+                button.contentTintColor = .labelColor
+                button.state = selected ? .on : .off
                 button.lineBreakMode = .byTruncatingTail; button.toolTip = title
                 button.setAccessibilityLabel(L("在胶囊中显示：%@",title))
                 button.widthAnchor.constraint(equalToConstant:220).isActive = true
                 return button
             }
             if showModelChoice {
-                stack.addArrangedSubview(label(L("胶囊显示额度"),color:.secondaryLabelColor))
+                stack.addArrangedSubview(label(L("胶囊显示额度"),color:secondaryColor))
                 let automatic = radio(L("自动（默认）"),id:nil)
                 automatic.toolTip = L("按平台默认规则显示额度")
                 stack.addArrangedSubview(automatic)
@@ -40,24 +54,24 @@ enum OfficialQuotaView {
                 } else if snapshot.namedBuckets.count > 1 || heading.lowercased() != selectedProvider.title.lowercased() {
                     stack.addArrangedSubview(label(heading,size:11,bold:true))
                 }
-                if bucket.windows.isEmpty { stack.addArrangedSubview(label(L("暂无可用额度窗口"), color: .secondaryLabelColor)) }
+                if bucket.windows.isEmpty { stack.addArrangedSubview(label(L("暂无可用额度窗口"), color: secondaryColor)) }
                 for window in bucket.windows {
                     let value = window.remaining.map { String(format: "%.1f%%", $0) } ?? L("未知")
                     stack.addArrangedSubview(label(L("%@    剩余 %@",window.title,value), size: 12, bold: true))
                     let expiration = window.expiresAt != nil || (window.localizesPeriodLabel && window.periodLabel == "一次性额度")
-                    stack.addArrangedSubview(label(expiration ? expiryText(window.expiresAt) : resetText(window.resetsAt),color:.secondaryLabelColor))
+                    stack.addArrangedSubview(label(expiration ? expiryText(window.expiresAt) : resetText(window.resetsAt),color:secondaryColor))
                     let bar = NSProgressIndicator(); bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = 100; bar.doubleValue = window.remaining ?? 0
                     bar.controlSize = .small
                     bar.widthAnchor.constraint(equalToConstant: 220).isActive = true
                     if window.remaining != nil { stack.addArrangedSubview(bar) }
                 }
                 if let credits = bucket.credits {
-                    stack.addArrangedSubview(label(L("Credits 余额：%@",credits.unlimited == true ? L("无限") : credits.balance ?? L("未提供")), color: .secondaryLabelColor))
+                    stack.addArrangedSubview(label(L("Credits 余额：%@",credits.unlimited == true ? L("无限") : credits.balance ?? L("未提供")), color: secondaryColor))
                 }
             }
-        } else { stack.addArrangedSubview(label(refreshing ? L("正在读取官方套餐…") : L("尚未取得额度"), color: .secondaryLabelColor)) }
+        } else { stack.addArrangedSubview(label(refreshing ? L("正在读取官方套餐…") : L("尚未取得额度"), color: secondaryColor)) }
         let time = lastSuccess.map { dateString($0) } ?? L("尚未成功")
-        stack.addArrangedSubview(label(L("更新：") + time,color:.secondaryLabelColor))
+        stack.addArrangedSubview(label(L("更新：") + time,color:secondaryColor))
         stack.toolTip! += "\n" + L("更新：%@\n每 2 分钟刷新 · %@",time,TimeZone.current.identifier)
         if selectedProvider == .claude && errorMessage != nil {
             let authorize = AccountActionButton(L("授权 Claude 登录读取"),handler:authorize)
@@ -68,6 +82,31 @@ enum OfficialQuotaView {
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.widthAnchor.constraint(equalToConstant:220).isActive = true
         return stack
+    }
+    /// 自绘高对比度单选圆环，避免液态玻璃及无焦点状态下未选中圆圈过淡。
+    private static func radioImage(selected: Bool) -> NSImage {
+        let size = NSSize(width: 14, height: 14)
+        let image = NSImage(size: size, flipped: false) { rect in
+            let dark = GlassAppearance.isDark(NSAppearance.currentDrawing())
+            let ringRect = rect.insetBy(dx: 1.25, dy: 1.25)
+            let ring = NSBezierPath(ovalIn: ringRect)
+            if selected {
+                NSColor.controlAccentColor.setFill()
+                ring.fill()
+                let dot = NSBezierPath(ovalIn: rect.insetBy(dx: 4.5, dy: 4.5))
+                NSColor.white.setFill()
+                dot.fill()
+            } else {
+                (dark ? NSColor(white: 1.0, alpha: 0.14) : NSColor(white: 0.0, alpha: 0.06)).setFill()
+                ring.fill()
+                (dark ? NSColor(white: 0.96, alpha: 0.72) : NSColor(white: 0.15, alpha: 0.62)).setStroke()
+                ring.lineWidth = 1.4
+                ring.stroke()
+            }
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
     private static func label(_ value: String, size: CGFloat = 10, color: NSColor = .labelColor, bold: Bool = false) -> NSTextField {
         let field = NSTextField(wrappingLabelWithString: value)

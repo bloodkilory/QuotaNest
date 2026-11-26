@@ -33,6 +33,18 @@ enum ProviderPayload {
         for (key, title) in [("seven_day_sonnet", "Sonnet 周额度"), ("seven_day_opus", "Opus 周额度")] {
             if let value = window(key, 10080) { buckets[key] = QuotaBucket(limitId: key, limitName: title, planType: nil, primary: value, secondary: nil, credits: nil, nameKey:title) }
         }
+        // 新版接口将 Fable 周额度放在 limits 中；percent 已按 Fable 自身上限计算。
+        for row in object["limits"] as? [[String: Any]] ?? [] {
+            guard row["kind"] as? String == "weekly_scoped",
+                  let scope = row["scope"] as? [String: Any],
+                  scope["surface"] == nil || scope["surface"] is NSNull,
+                  let model = scope["model"] as? [String: Any],
+                  let name = model["display_name"] as? String,
+                  name.caseInsensitiveCompare("Fable") == .orderedSame else { continue }
+            let key = "weekly_scoped_fable", title = "Fable 周额度"
+            let value = QuotaWindow(usedPercent: number(row["percent"]), windowDurationMins: 10080, resetsAt: timestamp(row["resets_at"]))
+            buckets[key] = QuotaBucket(limitId: key, limitName: title, planType: nil, primary: value, secondary: nil, credits: nil, nameKey: title)
+        }
         guard buckets.values.contains(where:{ $0.remaining != nil }) else { throw ProviderPayloadError(message: "Claude 未提供可用额度；请确认官方订阅及登录权限") }
         return QuotaSnapshot(rateLimits: nil, rateLimitsByLimitId: buckets)
     }
@@ -49,7 +61,15 @@ enum ProviderPayload {
                 guard kind == "weekly" || kind == "5h" else { continue }
                 let fraction = number(row["remaining_fraction"]).flatMap { (0...1).contains($0) ? $0 : nil }
                 let window = QuotaWindow(usedPercent: fraction.map { 100 - $0 * 100 }, windowDurationMins: kind == "weekly" ? 10080 : 300, resetsAt: timestamp(row["reset_time"]))
-                if kind == "weekly" { weekly = window } else { session = window }
+                func stricter(_ current: QuotaWindow?, _ candidate: QuotaWindow) -> QuotaWindow {
+                    guard let current else { return candidate }
+                    switch (current.remaining, candidate.remaining) {
+                    case (.some(let a), .some(let b)): return b < a ? candidate : current
+                    case (.none, .some): return candidate
+                    default: return current
+                    }
+                }
+                if kind == "weekly" { weekly = stricter(weekly, window) } else { session = stricter(session, window) }
             }
             if weekly != nil || session != nil {
                 let key = "group-\(index)"
@@ -58,5 +78,45 @@ enum ProviderPayload {
         }
         guard buckets.values.contains(where:{ $0.remaining != nil }) else { throw ProviderPayloadError(message: "Antigravity 未返回可用额度窗口") }
         return QuotaSnapshot(rateLimits: nil, rateLimitsByLimitId: buckets)
+    }
+    /// 抑制 Antigravity 服务端同一重置周期内的轻微回弹抖动（如多副本同步延迟或 ±1% 估算噪声）。
+    static func stabilizeAntigravity(previous: QuotaSnapshot?, incoming: QuotaSnapshot, maxJitterPercent: Double = 2.5) -> QuotaSnapshot {
+        guard let previous, let incomingMap = incoming.rateLimitsByLimitId else { return incoming }
+        let previousBuckets = previous.buckets
+        func matchBucket(_ bucket: QuotaBucket) -> QuotaBucket? {
+            if let name = bucket.limitName {
+                return previousBuckets.first { $0.limitName == name }
+            }
+            if let id = bucket.limitId {
+                return previousBuckets.first { $0.limitId == id }
+            }
+            return nil
+        }
+        func stabilizeWindow(_ prev: QuotaWindow?, _ next: QuotaWindow?) -> QuotaWindow? {
+            guard let next else { return nil }
+            guard let prev,
+                  let prevRem = prev.remaining, let nextRem = next.remaining,
+                  let prevReset = prev.resetsAt, let nextReset = next.resetsAt,
+                  prevReset > 0, nextReset > 0,
+                  abs(prevReset - nextReset) <= 60,
+                  prev.windowDurationMins == next.windowDurationMins else {
+                return next
+            }
+            let rebound = nextRem - prevRem
+            if rebound > 0 && rebound <= maxJitterPercent {
+                return QuotaWindow(usedPercent: prev.usedPercent, windowDurationMins: next.windowDurationMins, resetsAt: next.resetsAt, periodLabel: next.periodLabel, localizesPeriodLabel: next.localizesPeriodLabel, expiresAt: next.expiresAt)
+            }
+            return next
+        }
+        var stabilized: [String: QuotaBucket] = [:]
+        for (key, bucket) in incomingMap {
+            guard let prev = matchBucket(bucket) else { stabilized[key] = bucket; continue }
+            let primary = stabilizeWindow(prev.primary, bucket.primary)
+            let secondary = stabilizeWindow(prev.secondary, bucket.secondary)
+            stabilized[key] = QuotaBucket(limitId: bucket.limitId, limitName: bucket.limitName, planType: bucket.planType, primary: primary, secondary: secondary, credits: bucket.credits, nameKey: bucket.nameKey, nameArguments: bucket.nameArguments)
+        }
+        var result = QuotaSnapshot(rateLimits: incoming.rateLimits, rateLimitsByLimitId: stabilized)
+        result.loginSource = incoming.loginSource
+        return result
     }
 }

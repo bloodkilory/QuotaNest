@@ -108,6 +108,7 @@
 "Claude 官方套餐" = "Claude official subscription";
 "Sonnet 周额度" = "Sonnet weekly quota";
 "Opus 周额度" = "Opus weekly quota";
+"Fable 周额度" = "Fable weekly quota";
 "Claude 未提供可用额度；请确认官方订阅及登录权限" = "Claude returned no usable quota; check official subscription and sign-in permissions";
 "Antigravity 额度查询失败；请在 agy 中确认登录和网络" = "Antigravity quota query failed; check sign-in and network in agy";
 "额度组 %@" = "Quota group %@";

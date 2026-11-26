@@ -16,7 +16,7 @@ QuotaNest 在 Mac 菜单栏和 Windows 托盘展示 AI 剩余额度，每 2 分�
 
 AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per-provider model selection.
 
-**v1.10.0 更新**：Mac 新增 DeepSeek Harness 官方登录钱包，充值与赠送余额分开展示；移除 Kimi、MiniMax、Qoder、CodeBuddy 实验适配，ZCode 去掉实验性标签。玻璃弹窗改进菜单栏交互和定位，重新打开应用会自动展示详情。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0) · [English documentation](README.en.md)
+**v1.10.1 更新**：Mac 与 Windows 新增解析 Claude **Fable 周额度**；Mac 升级为 50% 透明度的原生全透明液态玻璃、高对比度单选圆环、原地旋转刷新动画、再次点击胶囊收起弹窗、切换防弹动，并优化 Antigravity 额度抗抖动与取整一致性。[下载正式版](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.1) · [English documentation](README.en.md)
 
 - **一眼知道还能用多少**：套餐显示剩余百分比与彩色填充，API 钱包显示原币种金额。
 - **统一来源选择**：在顶部“菜单栏显示”中选择官方套餐或已连接的 API 余额，胶囊与详情同步，记住上次选择。
@@ -29,10 +29,10 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 
 | 系统 | 下载 | 使用入口 |
 | --- | --- | --- |
-| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.10.0-universal.dmg` | 菜单栏胶囊 |
-| Windows 11 x64 | `QuotaNest-1.10.0-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
+| macOS 13+，Intel / Apple Silicon | `QuotaNest-1.10.1-universal.dmg` | 菜单栏胶囊 |
+| Windows 11 x64 | `QuotaNest-1.10.1-windows-x64-setup.exe` | 动态数字圆环托盘；悬停查看额度，点击打开控制面板 |
 
-两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.10.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
+两个安装包与统一的 `SHA256SUMS.txt` 均在 [v1.10.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.1)。Windows 安装、功能范围和校验方法见 [Windows 说明](docs/windows/README.md)。以下安装步骤适用于 Mac。
 
 **系统要求：macOS 13 或更新版本。** DMG 内含 Intel / Apple Silicon 通用应用；对应平台支持的官方客户端需要另外安装并登录。
 
@@ -47,7 +47,7 @@ AI quotas in the macOS menu bar and Windows tray, with Chinese / English and per
 下载后可对照 Release 中的 `SHA256SUMS.txt` 检查文件完整性：
 
 ```sh
-shasum -a 256 ~/Downloads/QuotaNest-1.10.0-universal.dmg
+shasum -a 256 ~/Downloads/QuotaNest-1.10.1-universal.dmg
 ```
 
 ## 从 CodexQuota 升级

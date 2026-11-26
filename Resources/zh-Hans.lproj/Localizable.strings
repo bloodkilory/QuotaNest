@@ -108,6 +108,7 @@
 "Claude 官方套餐" = "Claude 官方套餐";
 "Sonnet 周额度" = "Sonnet 周额度";
 "Opus 周额度" = "Opus 周额度";
+"Fable 周额度" = "Fable 周额度";
 "Claude 未提供可用额度；请确认官方订阅及登录权限" = "Claude 未提供可用额度；请确认官方订阅及登录权限";
 "Antigravity 额度查询失败；请在 agy 中确认登录和网络" = "Antigravity 额度查询失败；请在 agy 中确认登录和网络";
 "额度组 %@" = "额度组 %@";

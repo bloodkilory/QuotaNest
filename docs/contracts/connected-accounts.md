@@ -55,6 +55,21 @@ DeepSeek 官方按 currency 分池，total_balance 是已包含 granted_balance 
 12. Kimi API 现金负数、代金券与可用余额：保留官方语义；不同区域 Key 不混用；不冒充 Kimi Code 登录额度。
 13. GLM 名称或 OpenAI-compatible 协议不足以证明 Coding Plan/钱包查询能力；缺查询契约只识别配置，不试发计费推理请求。
 
+## 已实现：Claude 官方套餐与 Fable 周额度
+
+2026-11-23。本节记录 macOS 与 Windows 的 Claude 查询约定；前文通用 DTO 仍为设计约定。
+
+| 接口编号 | 接口名称 | 接口简介 | 接口url |
+| --- | --- | --- | --- |
+| QN-C01 | Claude 官方套餐额度查询 | 补充读取新版 `limits` 中的 Fable 独立周额度，展示剩余比例、重置时间并支持单独选择 | `GET https://api.anthropic.com/api/oauth/usage` |
+
+- 使用本机已有官方 OAuth 登录，发送 `Authorization: Bearer <token>`、`anthropic-beta: oauth-2025-04-20`；禁止重定向。不发送模型请求，不更新官方令牌。macOS 的桌面账号选择与同账号备用规则见 [Claude 登录说明](../providers/claude-desktop.md)；Windows 使用原生 Claude Code 登录。
+- 原有 `five_hour`、`seven_day`、`seven_day_sonnet`、`seven_day_opus` 对象继续读取 `utilization` 和 `resets_at`。
+- 新增读取 `limits[]` 中 `kind == "weekly_scoped"`、`scope.model.display_name` 不区分大小写等于 `Fable`、`scope.surface` 为 `null` 或缺失的记录。`percent` 表示 Fable 自身限制的已用百分比；剩余为 `100 - percent`，范围限制在 0–100。`resets_at` 为该记录的 ISO 8601 重置时间，周期为 7 天。Mac 内部分组键为 `weekly_scoped_fable`，Windows 模型标签为 `fable`，均非上游字段名。
+- `is_active: false` 不隐藏返回的额度。记录存在但 `percent` 缺失或为 `null` 时显示未知；无匹配记录时不创建 Fable 分组。只针对特定 `surface` 的记录不冒充整个模型的额度。
+- `weekly_scoped_shares[].used_percent_of_weekly` 与 `allowance_percent_of_weekly` 是相对总周额度的份额，不用于重算 Fable 自身百分比，不与总周额度相加。实际响应中 Fable `percent: 65`、总周已用份额 33、可用份额 50，Fable 剩余显示 35%。
+- 选中 Fable 后只展示其周额度和重置时间；自动选择保留当前“最低剩余”的规则。401/403 提示原工具重新登录或检查权限，429 遵守等待时间；失败保留上次读数并标记过期，无可用额度时不伪造零值。
+
 ## 已实现：DeepSeek Harness 本机登录余额
 
 2026-11-09。此节是当前 macOS 实现；前文通用 DTO 仍为设计约定。

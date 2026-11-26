@@ -1,6 +1,7 @@
 import AppKit
+import QuartzCore
 
-final class AccountActionButton: NSButton {
+class AccountActionButton: NSButton {
     private let handler: () -> Void
     init(_ title: String, id: String? = nil, handler: @escaping () -> Void) {
         self.handler = handler
@@ -10,6 +11,123 @@ final class AccountActionButton: NSButton {
     }
     required init?(coder: NSCoder) { fatalError() }
     @objc private func invoke() { handler() }
+}
+
+final class RefreshIconButton: AccountActionButton {
+    static let spinAnimationKey = "quotanest.refresh.spin"
+    private let spinnerView = NSImageView()
+    private let fallbackHost = NSView()
+    private let fallbackLayer = CALayer()
+    private var symbolEffectActive = false
+    var isSpinning = false { didSet { updateSpinner() } }
+    var hasSpinAnimation: Bool {
+        if #available(macOS 15.0, *) { return symbolEffectActive }
+        return fallbackLayer.animation(forKey: Self.spinAnimationKey) != nil
+    }
+
+    init(symbol: String, label: String, id: String, spinning: Bool, handler: @escaping () -> Void) {
+        super.init("", id: id, handler: handler)
+        let icon = NSImage(systemSymbolName: symbol, accessibilityDescription: label)
+        image = icon
+        imagePosition = .imageOnly
+        isBordered = false
+        contentTintColor = .labelColor
+        toolTip = label
+        setAccessibilityLabel(label)
+        widthAnchor.constraint(equalToConstant: 22).isActive = true
+        heightAnchor.constraint(equalToConstant: 22).isActive = true
+
+        if #available(macOS 15.0, *) {
+            spinnerView.image = icon
+            spinnerView.imageAlignment = .alignCenter
+            spinnerView.imageScaling = .scaleNone
+            spinnerView.contentTintColor = .labelColor
+            spinnerView.isHidden = true
+            addSubview(spinnerView)
+        } else {
+            // macOS 13–14：使用纯 CALayer 子层围绕中心原地旋转，避免 AppKit 重置 NSView backing layer 的 anchorPoint。
+            fallbackHost.wantsLayer = true
+            fallbackHost.isHidden = true
+            fallbackLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            fallbackLayer.contentsGravity = .center
+            fallbackHost.layer?.addSublayer(fallbackLayer)
+            addSubview(fallbackHost)
+        }
+        isSpinning = spinning
+        updateSpinner()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func draw(_ dirtyRect: NSRect) {
+        // 旋转中由居中的旋转视图绘制图标，避免静态底层重影。
+        if isSpinning { return }
+        super.draw(dirtyRect)
+    }
+
+    override func layout() {
+        super.layout()
+        syncSpinnerGeometry()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        updateSpinner()
+    }
+
+    private func syncSpinnerGeometry() {
+        let size = bounds.size.width > 0 && bounds.size.height > 0 ? bounds.size : NSSize(width: 22, height: 22)
+        if #available(macOS 15.0, *) {
+            spinnerView.frame = NSRect(origin: .zero, size: size)
+        } else {
+            fallbackHost.frame = NSRect(origin: .zero, size: size)
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            fallbackLayer.bounds = CGRect(origin: .zero, size: size)
+            fallbackLayer.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            fallbackLayer.contentsScale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+            if let img = image {
+                var rect = NSRect(origin: .zero, size: img.size)
+                fallbackLayer.contents = img.cgImage(forProposedRect: &rect, context: nil, hints: nil)
+            }
+            CATransaction.commit()
+        }
+    }
+
+    private func updateSpinner() {
+        needsDisplay = true
+        syncSpinnerGeometry()
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        if #available(macOS 15.0, *) {
+            spinnerView.isHidden = !isSpinning
+            if isSpinning && !reduceMotion {
+                if !symbolEffectActive {
+                    spinnerView.addSymbolEffect(.rotate.clockwise, options: .repeat(.continuous))
+                    symbolEffectActive = true
+                }
+            } else if symbolEffectActive {
+                spinnerView.removeAllSymbolEffects()
+                symbolEffectActive = false
+            }
+            return
+        }
+        fallbackHost.isHidden = !isSpinning
+        if !isSpinning || reduceMotion {
+            fallbackLayer.removeAnimation(forKey: Self.spinAnimationKey)
+            return
+        }
+        if fallbackLayer.animation(forKey: Self.spinAnimationKey) == nil {
+            let duration: CFTimeInterval = 0.85
+            let animation = CABasicAnimation(keyPath: "transform.rotation.z")
+            animation.fromValue = 0
+            animation.toValue = -CGFloat.pi * 2
+            animation.duration = duration
+            animation.repeatCount = .infinity
+            animation.isRemovedOnCompletion = false
+            animation.timingFunction = CAMediaTimingFunction(name: .linear)
+            animation.timeOffset = CACurrentMediaTime().truncatingRemainder(dividingBy: duration)
+            fallbackLayer.add(animation, forKey: Self.spinAnimationKey)
+        }
+    }
 }
 
 struct ConnectedAccountsPresentation {
@@ -80,7 +198,7 @@ enum ConnectedAccountsView {
         let header = NSStackView(); header.orientation = .horizontal; header.alignment = .centerY; header.spacing = 6
         header.widthAnchor.constraint(equalToConstant:220).isActive = true
         header.addArrangedSubview(text(L("余度 QuotaNest"),size:12,bold:true,width:164))
-        let refresh = icon("arrow.clockwise",label:L(refreshing ? "正在刷新…" : "立即刷新"),id:refreshID) { actions.refresh(accountID) }
+        let refresh = RefreshIconButton(symbol:"arrow.clockwise",label:L(refreshing ? "正在刷新…" : "立即刷新"),id:refreshID,spinning:refreshing) { actions.refresh(accountID) }
         refresh.isEnabled = canRefresh && !refreshing
         header.addArrangedSubview(refresh)
         header.addArrangedSubview(icon("gearshape",label:L("设置"),id:"settings",handler:actions.settings))
@@ -141,6 +259,7 @@ enum ConnectedAccountsView {
         let button = AccountActionButton("",id:id,handler:handler)
         button.image = NSImage(systemSymbolName:symbol,accessibilityDescription:label)
         button.imagePosition = .imageOnly; button.isBordered = false
+        button.contentTintColor = .labelColor
         button.toolTip = label; button.setAccessibilityLabel(label)
         button.widthAnchor.constraint(equalToConstant:22).isActive = true
         button.heightAnchor.constraint(equalToConstant:22).isActive = true

@@ -140,34 +140,54 @@ impl std::fmt::Display for AppError {
 impl std::error::Error for AppError {}
 
 pub fn parse_claude(root: &Value) -> Result<Quota, AppError> {
-    let windows = [
+    let mut rows = [
         ("five_hour", 300, "claude"),
         ("seven_day", 10080, "claude"),
         ("seven_day_sonnet", 10080, "sonnet"),
         ("seven_day_opus", 10080, "opus"),
     ]
     .into_iter()
-    .filter_map(|(key, minutes, label)| {
-        let row = root[key].as_object()?;
-        let used = row
-            .get("utilization")
-            .and_then(Value::as_f64)
-            .filter(|v| v.is_finite());
-        let resets_at = row
-            .get("resets_at")
-            .and_then(Value::as_str)
-            .and_then(|s| {
-                time::OffsetDateTime::parse(s, &time::format_description::well_known::Rfc3339).ok()
-            })
-            .map(|d| d.unix_timestamp() as f64);
-        Some(QuotaWindow {
-            label: Some(label.into()),
-            remaining: used.map(|used| (100.0 - used).clamp(0.0, 100.0)),
-            minutes: Some(minutes),
-            resets_at,
-        })
-    })
+    .map(|(key, minutes, label)| (&root[key], minutes, label, "utilization"))
     .collect::<Vec<_>>();
+    // 新版 Fable 周额度使用自身的 percent，不能换算为总周额度份额。
+    rows.extend(
+        root["limits"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter(|row| {
+                row["kind"].as_str() == Some("weekly_scoped")
+                    && row["scope"]["surface"].is_null()
+                    && row["scope"]["model"]["display_name"]
+                        .as_str()
+                        .is_some_and(|name| name.eq_ignore_ascii_case("Fable"))
+            })
+            .map(|row| (row, 10080, "fable", "percent")),
+    );
+    let windows = rows
+        .into_iter()
+        .filter_map(|(row, minutes, label, percent_key)| {
+            let row = row.as_object()?;
+            let used = row
+                .get(percent_key)
+                .and_then(Value::as_f64)
+                .filter(|v| v.is_finite());
+            let resets_at = row
+                .get("resets_at")
+                .and_then(Value::as_str)
+                .and_then(|s| {
+                    time::OffsetDateTime::parse(s, &time::format_description::well_known::Rfc3339)
+                        .ok()
+                })
+                .map(|d| d.unix_timestamp() as f64);
+            Some(QuotaWindow {
+                label: Some(label.into()),
+                remaining: used.map(|used| (100.0 - used).clamp(0.0, 100.0)),
+                minutes: Some(minutes),
+                resets_at,
+            })
+        })
+        .collect::<Vec<_>>();
     if !windows.iter().any(|w| w.remaining.is_some()) {
         return Err(AppError::new("invalid_quota"));
     }

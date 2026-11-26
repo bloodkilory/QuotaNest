@@ -11,7 +11,7 @@ const copy:Record<string,[string,string]>={
  subscription:['Subscription quota','套餐余量'],
  close:['Close','关闭'],
  title:['QuotaNest','余度 QuotaNest'], source:['Display source','显示来源'],
- claude:['Claude · Subscription quota','Claude · 套餐余量'],claudeGroup:['Claude subscription','Claude 总额度'],sonnet:['Sonnet weekly','Sonnet 周额度'],opus:['Opus weekly','Opus 周额度'],trayDisplay:['Tray reading','托盘读数'],plan:['Plan','套餐'],
+ claude:['Claude · Subscription quota','Claude · 套餐余量'],claudeGroup:['Claude subscription','Claude 总额度'],sonnet:['Sonnet weekly','Sonnet 周额度'],opus:['Opus weekly','Opus 周额度'],fable:['Fable weekly','Fable 周额度'],trayDisplay:['Tray reading','托盘读数'],plan:['Plan','套餐'],
  codex:['Codex · Subscription quota','Codex · 套餐余量'], api:['API balance','API 余额'], configuration:['Saved configuration, not observed session routing','已保存配置，不代表当前会话实际路由'],
  available:['Available balance','可用余额'],granted:['Granted','赠送余额'],paid:['Topped up','充值余额'],
  refresh:['Refresh now','立即刷新'],refreshing:['Refreshing…','正在查询…'],updated:['Updated','更新于'],never:['No successful reading yet','尚无成功查询'],stale:['Outdated reading','读数已过期'],
@@ -38,7 +38,7 @@ const copy:Record<string,[string,string]>={
 };
 export function isChinese(s:Snapshot):boolean {return s.preferences.language==='zh' || (s.preferences.language==='system' && (typeof navigator!=='undefined' && navigator.language.startsWith('zh')));}
 export function text(s:Snapshot,key:string):string {return copy[key]?.[isChinese(s)?1:0]??copy.http_error[isChinese(s)?1:0];}
-export function modelLabel(s:Snapshot,value:string):string {return value==='codex'?'Codex':value==='claude'?text(s,'claudeGroup'):value==='sonnet'?'Sonnet':value==='opus'?'Opus':value;}
+export function modelLabel(s:Snapshot,value:string):string {return value==='codex'?'Codex':value==='claude'?text(s,'claudeGroup'):value==='sonnet'?'Sonnet':value==='opus'?'Opus':value==='fable'?'Fable':value;}
 export function modelChoices(s:Snapshot):{value:string;label:string}[] {
  const data=s.reading.data;
  if(data?.kind!=='quota')return [];

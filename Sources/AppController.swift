@@ -335,7 +335,10 @@ final class AppController: NSObject, NSApplicationDelegate {
                 self.readings[provider]?.refreshing = false
                 switch result {
                 case .success(let value):
-                    self.readings[provider]?.snapshot = value
+                    let snapshot = provider == .antigravity
+                        ? ProviderPayload.stabilizeAntigravity(previous: self.readings[provider]?.snapshot, incoming: value)
+                        : value
+                    self.readings[provider]?.snapshot = snapshot
                     self.readings[provider]?.lastSuccess = Date()
                     self.readings[provider]?.successes += 1
                     self.readings[provider]?.error = nil
@@ -446,7 +449,7 @@ final class AppController: NSObject, NSApplicationDelegate {
         capsule.periodText = reading.periodLabel(for: selectedProvider, period: period)
         capsule.canSwitchPeriod = reading.periods(for: selectedProvider).count > 1
         capsule.remaining = remaining; capsule.stale = errorMessage != nil
-        let value = remaining.map { String(format: "%.0f%%", floor($0)) + (errorMessage == nil ? "" : "!") } ?? (refreshing ? "···" : "—")
+        let value = remaining.map { String(format: "%.0f%%", $0.rounded()) + (errorMessage == nil ? "" : "!") } ?? (refreshing ? "···" : "—")
         capsule.provider = selectedProvider
         capsule.text = value
         let title = L("%@ %@ 剩余额度 %@",selectedProvider.title + (reading.selectedModel.map { " · " + $0.name } ?? (selectedProvider == .antigravity ? " Gemini" : "")),capsule.periodText,value) + (errorMessage == nil ? "" : L("，查询失败或数据过期"))
@@ -459,6 +462,7 @@ final class AppController: NSObject, NSApplicationDelegate {
     }
     private func togglePopover() {
         if popover.isShown { popover.performClose(nil); return }
+        if popover.consumeRecentAnchorDismiss() { return }
         buildPopover()
         if let anchor = status.view ?? status.button { popover.show(below: anchor); NSApp.activate(ignoringOtherApps: true) }
     }
@@ -481,8 +485,19 @@ final class AppController: NSObject, NSApplicationDelegate {
         let scroll = NSScrollView(frame:NSRect(x:0,y:0,width:width,height:min(height,maxHeight)))
         scroll.drawsBackground = false; scroll.hasVerticalScroller = height > maxHeight; scroll.documentView = content
         scroll.contentView.scroll(to:NSPoint(x:0,y:max(0,height - scroll.frame.height)))
-        let controller = NSViewController(); controller.view = GlassAppearance.wrap(scroll,size:scroll.frame.size)
-        popover.contentViewController = controller; popover.contentSize = scroll.frame.size
+        let controller: NSViewController
+        if let existing = popover.contentViewController {
+            controller = existing
+            popover.contentSize = scroll.frame.size
+            if !GlassAppearance.replaceContent(in: controller.view, with: scroll, size: scroll.frame.size) {
+                controller.view = GlassAppearance.wrap(scroll, size: scroll.frame.size)
+            }
+        } else {
+            controller = NSViewController()
+            controller.view = GlassAppearance.wrap(scroll, size: scroll.frame.size)
+            popover.contentViewController = controller
+            popover.contentSize = scroll.frame.size
+        }
         controller.view.window?.autorecalculatesKeyViewLoop = true
         if let focused {
             func find(_ view: NSView) -> NSView? { view.identifier == focused ? view : view.subviews.lazy.compactMap { find($0) }.first }

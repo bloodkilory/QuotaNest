@@ -44,7 +44,7 @@ final class CapsuleView: NSView {
     func configureStatusItem(_ item: NSStatusItem) {
         frame.size = NSSize(width: 64, height: 18)
         let container = NSView(frame: bounds)
-        let surface = GlassAppearance.wrap(self, size: bounds.size, cornerRadius: 9)
+        let surface = GlassAppearance.wrap(self, size: bounds.size, cornerRadius: 9, interactive: true)
         surface.autoresizingMask = [.width, .minYMargin, .maxYMargin]
         container.addSubview(surface)
         item.view = container

@@ -4,6 +4,28 @@ func expect(_ condition: Bool, _ message: String) { if !condition { fatalError(m
 let claude = try ProviderPayload.claude(Data(#"{"five_hour":{"utilization":12,"resets_at":"2026-10-12T20:00:00Z"},"seven_day":{"utilization":81,"resets_at":"2026-10-19T20:00:00Z"}}"#.utf8))
 expect(claude.remaining == 19, "Claude utilization converted into remaining")
 expect(claude.buckets[0].windows[0].resetsAt != nil, "Claude reset ISO date parsed")
+// 按官方新版响应读取 Fable 自身的周额度，不用总周额度份额重新计算。
+func fablePayload(_ percent: String, surface: String = "null") -> Data {
+    Data("""
+    {"five_hour":{"utilization":12},"seven_day":{"utilization":76},"limits":[{"kind":"weekly_scoped","group":"weekly","percent":\(percent),"severity":"normal","resets_at":"2026-10-30T10:00:00Z","scope":{"model":{"id":null,"display_name":"Fable"},"surface":\(surface)},"is_active":false}],"weekly_scoped_shares":[{"limit_index":0,"used_percent_of_weekly":33,"allowance_percent_of_weekly":50}]}
+    """.utf8)
+}
+let fable = try ProviderPayload.claude(fablePayload("65"))
+var selectedFable = ProviderReading(snapshot: fable)
+expect(selectedFable.models.contains { $0.key == "weekly_scoped_fable" && $0.name == "Fable 周额度" }, "Fable is available as a separate quota model even when inactive")
+selectedFable.modelID = "key:weekly_scoped_fable"
+expect(selectedFable.window(for: .claude, period: .weekly)?.remaining == 35, "Fable uses its own percent instead of its share of the overall weekly quota")
+expect(selectedFable.window(for: .claude, period: .weekly)?.resetsAt == 1793354400, "Fable reset belongs to its own quota")
+expect(selectedFable.periods(for: .claude) == [.weekly], "Selected Fable has only its own weekly period")
+for (percent, remaining) in [("0", 100.0), ("100", 0.0)] {
+    let snapshot = try ProviderPayload.claude(fablePayload(percent))
+    expect(snapshot.rateLimitsByLimitId?["weekly_scoped_fable"]?.remaining == remaining, "Fable preserves unused and exhausted quota")
+}
+selectedFable.snapshot = try ProviderPayload.claude(fablePayload("null"))
+expect(selectedFable.selectedModel != nil && selectedFable.window(for: .claude, period: .weekly) == nil, "Unknown Fable never borrows the overall quota")
+expect(claude.rateLimitsByLimitId?["weekly_scoped_fable"] == nil, "Legacy Claude responses do not invent Fable quota")
+let surfaceFable = try ProviderPayload.claude(fablePayload("65", surface: #""cowork""#))
+expect(surfaceFable.rateLimitsByLimitId?["weekly_scoped_fable"] == nil, "Surface-specific quota is not shown as overall Fable quota")
 let agy = try ProviderPayload.antigravity(Data(#"{"status":"SUCCESS","command":{"name":"usage","data":{"groups":[{"name":"Gemini Models","buckets":[{"id":"weekly","window":"weekly","remaining_fraction":0.31,"reset_time":"2026-10-14T03:25:48Z"},{"id":"5h","disabled":true,"remaining_fraction":0}]},{"name":"Claude and GPT models","buckets":[{"id":"weekly","window":"weekly","remaining_fraction":0}]}]}}}"#.utf8))
 expect(agy.buckets.count == 2, "Antigravity keeps separate quota groups")
 expect(agy.buckets[0].windows.count == 1, "Disabled Antigravity bucket excluded")
@@ -75,3 +97,26 @@ expect(unknownGroup.buckets.count == 2,"Antigravity preserves returned unknown m
 var unknownAG = ProviderReading(snapshot:unknownGroup)
 unknownAG.modelID = "name:Claude and GPT models"
 expect(unknownAG.selectedModel != nil && unknownAG.window(for:.antigravity,period:.weekly) == nil,"parsed unknown non-Gemini model stays unknown")
+
+func agySnapshot(weekly: Double?, short: Double?, weeklyReset: String = "2026-12-03T07:02:56Z", shortReset: String = "2026-11-26T12:02:56Z", reordered: Bool = false) throws -> QuotaSnapshot {
+    let w = weekly.map { String($0) } ?? "null"
+    let s = short.map { String($0) } ?? "null"
+    let gemini = #"{"name":"Gemini Models","buckets":[{"window":"weekly","remaining_fraction":\#(w),"reset_time":"\#(weeklyReset)"},{"window":"5h","remaining_fraction":\#(s),"reset_time":"\#(shortReset)"}]}"#
+    let other = #"{"name":"Claude and GPT models","buckets":[{"window":"weekly","remaining_fraction":1,"reset_time":"1970-01-01T00:00:00Z"}]}"#
+    let groups = reordered ? "[\(other),\(gemini)]" : "[\(gemini),\(other)]"
+    return try ProviderPayload.antigravity(Data(#"{"status":"SUCCESS","command":{"name":"usage","data":{"groups":\#(groups)}}}"#.utf8))
+}
+let agyBase = try agySnapshot(weekly: 0.9886, short: 0.9819)
+let agyRebound = try agySnapshot(weekly: 0.9891, short: 0.9865, reordered: true)
+let agyStabilized = ProviderPayload.stabilizeAntigravity(previous: agyBase, incoming: agyRebound)
+expect(abs((ProviderReading(snapshot: agyStabilized).window(for: .antigravity, period: .weekly)?.remaining ?? 0) - 98.86) < 0.001, "Antigravity suppresses small same-cycle weekly rebound even when groups reorder")
+expect(abs((ProviderReading(snapshot: agyStabilized).window(for: .antigravity, period: .short)?.remaining ?? 0) - 98.19) < 0.001, "Antigravity suppresses small same-cycle 5h rebound")
+let agyDrop = try agySnapshot(weekly: 0.9784, short: 0.9708)
+let agyDropped = ProviderPayload.stabilizeAntigravity(previous: agyStabilized, incoming: agyDrop)
+expect(abs((ProviderReading(snapshot: agyDropped).window(for: .antigravity, period: .weekly)?.remaining ?? 0) - 97.84) < 0.001, "Antigravity immediately reflects real quota consumption")
+let agyNewCycle = try agySnapshot(weekly: 1.0, short: 1.0, weeklyReset: "2026-12-10T07:02:56Z", shortReset: "2026-11-26T17:02:56Z")
+let agyReset = ProviderPayload.stabilizeAntigravity(previous: agyDropped, incoming: agyNewCycle)
+expect(ProviderReading(snapshot: agyReset).window(for: .antigravity, period: .weekly)?.remaining == 100, "Antigravity adopts full quota when reset cycle advances")
+let agyLargeJump = try agySnapshot(weekly: 0.999, short: 0.999)
+let agyJumped = ProviderPayload.stabilizeAntigravity(previous: try agySnapshot(weekly: 0.95, short: 0.95), incoming: agyLargeJump)
+expect(abs((ProviderReading(snapshot: agyJumped).window(for: .antigravity, period: .weekly)?.remaining ?? 0) - 99.9) < 0.001, "Antigravity does not clamp genuine large quota increases")

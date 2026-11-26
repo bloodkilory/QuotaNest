@@ -6,7 +6,7 @@ AI quota readings for the macOS menu bar and Windows tray, refreshed every 2 min
 
 原生 macOS 菜单栏套餐余量与 DeepSeek API 余额，支持中文 / English，统一选择显示来源。
 
-**Updated in v1.10.0:** Mac adds the DeepSeek Harness wallet with separate recharge and bonus balances, removes four experimental adapters, and drops the ZCode experimental label. Glass popover interactions, positioning and reopening are improved. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0) · [中文文档](README.md)
+**Updated in v1.10.1:** Both Mac and Windows add support for Claude **Fable weekly quota**; Mac updates to clear Liquid Glass (50% transparency tint), high-contrast radio indicators, centered refresh spin animation, second-click capsule dismiss, bounce-free popover switching, and stabilized Antigravity quota rounding. [Download the stable release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.1) · [中文文档](README.md)
 
 ## ZCode and DeepSeek Harness
 
@@ -20,10 +20,10 @@ The Kimi Code, MiniMax Code, Qoder and CodeBuddy experimental adapters have been
 
 | Platform | Download | Display |
 | --- | --- | --- |
-| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.10.0-universal.dmg` | Native menu bar capsule |
-| Windows 11 x64 | `QuotaNest-1.10.0-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
+| macOS 13+, Intel / Apple Silicon | `QuotaNest-1.10.1-universal.dmg` | Native menu bar capsule |
+| Windows 11 x64 | `QuotaNest-1.10.1-windows-x64-setup.exe` | Dynamic tray number/ring, hover details and click controls |
 
-Both installers and the combined `SHA256SUMS.txt` are in the [v1.10.0 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.0). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
+Both installers and the combined `SHA256SUMS.txt` are in the [v1.10.1 Release](https://github.com/bloodkilory/QuotaNest/releases/tag/v1.10.1). See [Windows setup and verification](docs/windows/README.md); the steps below apply to Mac.
 
 Requires macOS 13+. Download the universal DMG from this repository’s **[Releases](https://github.com/bloodkilory/QuotaNest/releases/latest)**, drag the app into **Applications**, eject the image, then open the installed app. Intel and Apple Silicon binaries are included. Provider CLIs are separate prerequisites.
 

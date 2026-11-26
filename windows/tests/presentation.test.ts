@@ -88,3 +88,14 @@ test('automatic periods skip unknown usage while explicit model remains unknown'
  s.preferences.model={claude:'claude'};
  assert.equal(present(s).amount,'—');assert.equal(present(s).selected,'300');
 });
+test('Fable is selectable with its own weekly balance and reset in both languages',()=>{
+ const s=demoSnapshot('claude');
+ if(s.reading.data?.kind!=='quota')throw new Error('quota data missing');
+ s.reading.data.value.windows.push({label:'fable',remaining:35,minutes:10080,resetsAt:1793354400});
+ assert.ok(modelChoices(s).some(c=>c.value==='fable'&&c.label==='Fable'));
+ s.preferences.model={claude:'fable'};
+ assert.equal(present(s).amount,'35%');assert.equal(present(s).quotaWindow?.resetsAt,1793354400);
+ assert.deepEqual(displayChoices(s),[{value:'10080',label:'7d'}]);
+ assert.equal(text(s,'fable'),'Fable weekly');
+ s.preferences.language='zh';assert.equal(text(s,'fable'),'Fable 周额度');
+});
